@@ -178,7 +178,7 @@ contract BiffyPlatinum {
         require(amount > 0, "Amount needs to be higher than zero.");
         require(balanceOf[owner] >= amount, "Not enough balance.");
         
-        safeAdd(prizesBalances["upForGrabs"], amount);
+        prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
         
     }
 
@@ -190,14 +190,14 @@ contract BiffyPlatinum {
     // Anyone can manually add to the prize if they're feeling generous.
     
         require(msg.value > 0, "Value needs to be higher than zero.");
-        safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
+        prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
     }// end addToHtmlPrize
 
     function addToTokenPrize(uint value) public {
     // Anyone can manually add to the prize if they're feeling generous.
 
         require(value > 0);
-        safeAdd(prizesBalances["tokenLotteryPrize"], value);
+        prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
     }// end addToTokenPrize
 
     function setSell(uint quantity, uint htmlPrice) public {
@@ -210,17 +210,53 @@ contract BiffyPlatinum {
         tokensForSale[msg.sender].pricePerToken = htmlPrice;
     }// end setSell 
 
-    function buyTokens(address _seller, uint qtyToBuy) payable public {
+    function buyTokens(address _seller) payable public {
         // Can't buy from yourself.
         require(msg.sender != _seller);
 
-        bool isOwner = (_seller == owner);
+        // Seller must be actually selling an amount of tokens for a cost > 0.
+        require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0);
+
+        // Is the seller the owner or one of many holders?
+        bool sellerIsOwner = (_seller == owner);
+
+        // Keep track of htmlcoin being spent.
+        uint256 amountBeingSpent = msg.value;
+
+        // Full cost of all tokens for sale by seller.
+        uint256 totalCostForAllTokens = tokensForSale[_seller].pricePerToken * tokensForSale[_seller].numTokensForSale;
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(qtyToBuy <= tokensForSale[_seller].numTokensForSale && qtyToBuy > 0);
+        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Must spend > 0 and <= cost of all tokens.");
+        
+        // How much does it cost for 1 token?
+        uint256 costToBuy = qtyToBuy * tokensForSale[_seller].pricePerToken;
 
-        // Buyer must send more than 0 htmlcoins...
-        require(msg.value > 0);
+        // Figure out sale.  
+        uint256 numOfTokensPurchased = amountBeingSpent / tokensForSale[_seller].pricePerToken;
+        if (numOfTokensPurchased > tokensForSale[_seller].numTokensForSale) {
+            revert();
+        }
+
+        // Fee or no...?
+        uint256 fee = 0;
+        if (!sellerIsOwner) {
+            fee = amountBeingSpent * .01; // Fee is 1%.
+            amountBeingSpent = safeSubtract(amountBeingSpent, fee); // amountBeingSpent minus the fee.
+
+            // Pay fee to me.
+            owner.transfer(fee);
+
+            // Pay the rest to the seller.
+            _seller.transfer(amountBeingSpent)
+        } else {
+            // If they buy from me, put half of the payment into the htmlcoin lottery.
+            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], (amountBeingSpent / 2));
+        }
+
+        // Oh, yeah!  Send those purchased tokens.
+        _transfer(msg.sender, _seller, numOfTokensPurchased);
+
 
     }// end buyTokens
 
@@ -264,5 +300,5 @@ contract BiffyPlatinum {
             } else {
                 rewardAmount = 0;
             }
-    }// end playTokenLottery
+    }// end playHtmlcoinLottery
 }// end contract BiffyPlatinum
