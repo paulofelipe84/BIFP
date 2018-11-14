@@ -13,7 +13,7 @@ contract BiffyPlatinum {
 
     uint8 public decimals = 18;
 
-    uint256 public totalSupply = 10000000000;
+    uint256 public totalSupply = 25000000000;
     
     uint256 public threshold = 10; // Maximum number of tokens that can be played for the BIFP-only prize.
 
@@ -31,6 +31,9 @@ contract BiffyPlatinum {
     mapping (address => saleAttributes) public tokensForSale;
     
     address public player;
+
+    bool public tokenLotteryOn = false;
+    bool public htmlcoinLotteryOn = false;
 
     // This generates a public event on the blockchain that will notify clients
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
@@ -192,6 +195,14 @@ contract BiffyPlatinum {
         threshold = value;
     }// end setThreshold
 
+    function turnTokenLotteryOn(bool value) onlyOwner public {
+        tokenLotteryOn = value;
+    }// end turnTokenLotteryOn
+
+    function turnHtmlcoinLotteryOn(bool value) onlyOwner public {
+        htmlcoinLotteryOn = value;
+    }// end turnTokenLotteryOn
+
     function addToHtmlPrize() public payable {
     // Anyone can manually add to the prize if they're feeling generous.
     
@@ -240,6 +251,12 @@ contract BiffyPlatinum {
         uint256 numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken);
         require(numOfTokensPurchased <= tokensForSale[_seller].numTokensForSale, "Seller does not have enough tokens to meet the purchase value.");
 
+        // Subtracts the sold amount from the available balance
+        tokensForSale[_seller].numTokensForSale = safeSub(tokensForSale[_seller].numTokensForSale, numOfTokensPurchased);
+        
+        // Oh, yeah!  Send those purchased tokens.
+        _transfer(_seller, msg.sender, numOfTokensPurchased);
+
         // Fee or no...?
         uint256 fee;
         if (_seller != owner) {
@@ -256,12 +273,12 @@ contract BiffyPlatinum {
             prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], (amountBeingSpent / 2));
         }
 
+        
         // Subtracts the sold amount from the available balance
         tokensForSale[_seller].numTokensForSale = safeSub(tokensForSale[_seller].numTokensForSale, numOfTokensPurchased);
         
         // Oh, yeah!  Send those purchased tokens.
         _transfer(_seller, msg.sender, numOfTokensPurchased);
-
 
     }// end buyTokens
 
@@ -277,6 +294,9 @@ contract BiffyPlatinum {
             
             // luckyNumber needs to be equal or higher than 0.
             require(luckyNumber >= 0, "Your lucky number needs to be equal or higher than 0.");
+
+            // Specific lottery needs to be on, so...
+            require((value <= threshold && tokenLotteryOn == true) || (value > threshold && htmlcoinLotteryOn == true), "The lottery you are trying to play is not active at this time.");
             
             //If it's a Token Lottery
             if (value <= threshold) {
