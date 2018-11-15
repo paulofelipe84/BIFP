@@ -273,13 +273,6 @@ contract BiffyPlatinum {
             prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], (amountBeingSpent / 2));
         }
 
-        
-        // Subtracts the sold amount from the available balance
-        tokensForSale[_seller].numTokensForSale = safeSub(tokensForSale[_seller].numTokensForSale, numOfTokensPurchased);
-        
-        // Oh, yeah!  Send those purchased tokens.
-        _transfer(_seller, msg.sender, numOfTokensPurchased);
-
     }// end buyTokens
 
     function playLottery(uint value, uint luckyNumber) public
@@ -343,7 +336,7 @@ contract BiffyPlatinum {
 
     function playTokenLottery(uint luckyNumber) internal
         returns (uint rewardAmount) {
-             uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
+            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
              
             // uint randomNumber = SOME PROCESS to do random number betwen 0 and tokenLotteryChances, with some value being the winning number.
             if (randomNumber == luckyNumber) {
@@ -358,7 +351,7 @@ contract BiffyPlatinum {
 
     function playHtmlcoinLottery(uint luckyNumber) internal
         returns (uint rewardAmount) {
-            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % htmlcoinLotteryChances;
+            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % uint(keccak256(abi.encodePacked(block.timestamp))); //htmlcoinLotteryChances;
             
             // uint randomNumber = SOME PROCESS to do random number betwen 0 and htmlcoinLotteryChances, with some value being the winning number.
             if (randomNumber == luckyNumber) {
