@@ -338,7 +338,7 @@ contract BiffyPlatinum {
 
     function playHtmlcoinLottery(uint luckyNumber) internal
         returns (uint rewardAmount) {
-            uint randomNumber = uint(blockhash(block.number)) % htmlcoinLotteryChances;
+            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % htmlcoinLotteryChances;
             
             // uint randomNumber = SOME PROCESS to do random number betwen 0 and htmlcoinLotteryChances, with some value being the winning number.
             if (randomNumber == luckyNumber) {
