@@ -323,7 +323,7 @@ contract BiffyPlatinum {
 
     function playTokenLottery(uint luckyNumber) internal
         returns (uint rewardAmount) {
-             uint randomNumber = uint(blockhash(block.number)) % tokenLotteryChances;
+             uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
              
             // uint randomNumber = SOME PROCESS to do random number betwen 0 and tokenLotteryChances, with some value being the winning number.
             if (randomNumber == luckyNumber) {
