@@ -155,6 +155,8 @@ contract BiffyPlatinum {
         require(msg.sender == owner, "Sender not authorized.");
         _;
     }
+
+
     
     function upForGrabs(uint amount) public
         returns (bool win, uint rewardAmount) {
@@ -182,14 +184,12 @@ contract BiffyPlatinum {
             }
     }// upForGrabs(uint amount)
     
-    function loadUpForGrabs(uint amount) onlyOwner public{
-        
+    function loadUpForGrabs(uint amount) onlyOwner public{  
         require(amount > 0, "Amount needs to be higher than zero.");
         require(balanceOf[owner] >= amount, "Not enough balance.");
         
         prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
-        
-    }
+    }// end loadUpForGrabs
 
     function setThreshold(uint value) onlyOwner public {
         threshold = value;
@@ -201,7 +201,15 @@ contract BiffyPlatinum {
 
     function turnHtmlcoinLotteryOn(bool value) onlyOwner public {
         htmlcoinLotteryOn = value;
-    }// end turnTokenLotteryOn
+    }// end turnHtmlcoinLotteryOn
+
+    function setTokenLotteryChances(uint value) onlyOwner public {
+        tokenLotteryChances = value;
+    }// end setTokenLotteryChances
+
+    function setHtmlcoinLotteryChances(uint value) onlyOwner public {
+        htmlcoinLotteryChances = value;
+    }// end setHtmlcoinLotteryChances
 
     function addToHtmlPrize() public payable {
     // Anyone can manually add to the prize if they're feeling generous.
