@@ -11,11 +11,11 @@ contract BiffyPlatinum {
   
     string public standard = 'Token 0.1';
 
-    uint8 public decimals = 18;
+    uint8 public decimals = 18; // REMEMBER TO CHANGE IT BACK TO 8 BEFORE DEPLOYING
 
     uint256 public totalSupply = 25000000000;
     
-    uint256 public threshold = 10; // Maximum number of tokens that can be played for the BIFP-only prize.
+    uint256 public threshold = 100; // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
 
     uint public tokenLotteryChances = 100;
     uint public htmlcoinLotteryChances = 500;
@@ -48,8 +48,7 @@ contract BiffyPlatinum {
         totalSupply = totalSupply * 10 ** uint256(decimals); // Update total supply with the decimal amount
         balanceOf[owner] = totalSupply; // Give the creator all initial tokens
         
-        prizesBalances["tokenLotteryPrize"] = 0;
-        prizesBalances["htmlcoinLotteryPrize"] = 0;
+        threshold = threshold * 10 ** uint256(decimals); // Update threshold with the decimal amount
     }
 
     /**
@@ -155,8 +154,6 @@ contract BiffyPlatinum {
         require(msg.sender == owner, "Sender not authorized.");
         _;
     }
-
-
     
     function upForGrabs(uint amount) public
         returns (bool win, uint rewardAmount) {
@@ -175,7 +172,6 @@ contract BiffyPlatinum {
                 
             } else {
                 _transfer(player, owner, amount);
-
                 prizesBalances["upForGrabs"] = amount;
                 
                 win = false;
@@ -184,22 +180,30 @@ contract BiffyPlatinum {
             }
     }// upForGrabs(uint amount)
     
-    function loadUpForGrabs(uint amount) onlyOwner public{  
+    function loadUpForGrabs(uint amount) public{  
         require(amount > 0, "Amount needs to be higher than zero.");
-        require(balanceOf[owner] >= amount, "Not enough balance.");
+        require(balanceOf[msg.sender] >= amount, "Not enough balance.");
         
+        if(msg.sender != owner){
+            _transfer(msg.sender, owner, amount);
+        }
+
         prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
+
     }// end loadUpForGrabs
 
     function setThreshold(uint value) onlyOwner public {
+        // Value needs to be divisible by 100 in order for the Token lottery to work properly.
+        require(value % 100 == 0, "Threshold needs to be divisible by 100.");
+        
         threshold = value;
     }// end setThreshold
 
-    function turnTokenLotteryOn(bool value) onlyOwner public {
+    function tokenLotterySwitch(bool value) onlyOwner public {
         tokenLotteryOn = value;
     }// end turnTokenLotteryOn
 
-    function turnHtmlcoinLotteryOn(bool value) onlyOwner public {
+    function htmlcoinLotterySwitch(bool value) onlyOwner public {
         htmlcoinLotteryOn = value;
     }// end turnHtmlcoinLotteryOn
 
@@ -283,41 +287,58 @@ contract BiffyPlatinum {
 
     }// end buyTokens
 
-    function playLottery(uint value, uint luckyNumber) public
+    function playLottery(uint playedAmount, uint luckyNumber) public
         returns (bool win, uint rewardAmount) {
-        // This function delegates which lottery process should run.  Might also handle the payouts.
 
             // You have to play more than 0 to win.  :P
-            require(value > 0, "You have to play more than 0 to win!");
+            require(playedAmount > 0, "You have to play more than 0 to win!");
+            
+            // Moves the played amount to the internal contract token precision
+            playedAmount = playedAmount * 10 ** uint256(decimals);
             
             // You don't have enough Tokens!
-            require(balanceOf[msg.sender] >= value, "You don't have that much Tokens!");
+            require(balanceOf[msg.sender] >= playedAmount, "You don't have that much Tokens!");
             
             // luckyNumber needs to be equal or higher than 0.
             require(luckyNumber >= 0, "Your lucky number needs to be equal or higher than 0.");
 
             // Specific lottery needs to be on, so...
-            require((value <= threshold && tokenLotteryOn == true) || (value > threshold && htmlcoinLotteryOn == true), "The lottery you are trying to play is not active at this time.");
+            require((playedAmount <= threshold && tokenLotteryOn == true) || (playedAmount > threshold && htmlcoinLotteryOn == true), "The lottery you are trying to play is not active at this time.");
+            
+            uint randomNumber;
             
             //If it's a Token Lottery
-            if (value <= threshold) {
+            if (playedAmount <= threshold) {
                 // Prize needs to be higher than the value played
-                require(prizesBalances["tokenLotteryPrize"] > value);
+                require(playedAmount < prizesBalances["tokenLotteryPrize"], "You are playing with a greater amount than the prize itself.");
                             
                 // luckyNumber needs to be equal or lower than tokenLotteryChances.
                 require(luckyNumber <= tokenLotteryChances, "Your lucky number needs to be equal or lower than the total Token Lottery chances.");
                 
-                rewardAmount = playTokenLottery(luckyNumber);
-                
-                if(rewardAmount > 0){
-                    // Charges the Tokens played
-                    rewardAmount = safeSub(rewardAmount, value);
+                // Draws the number
+                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
+             
+                if (luckyNumber == randomNumber) {
+                    // Fetch the rewardAmount based on how much was played
+                    rewardAmount = prizesBalances["tokenLotteryPrize"] * (threshold / playedAmount);
                     
-                    // Transfer the prize to the winner.
+                    // Deducts the prize
+                    prizesBalances["tokenLotteryPrize"] = safeSub(prizesBalances["tokenLotteryPrize"], rewardAmount);
+                    
+                    // Transfers the prize to the winner.
                     _transfer(owner, msg.sender, rewardAmount);
                     
                     win = true;
+                    
+                } else {
+                    rewardAmount = 0;
+                    
+                    win = false;
+                    
+                    // Charges the played amount
+                    _transfer(msg.sender, owner, playedAmount);
                 }
+                
             //If it's an HTMLCoin Lottery    
             } else {
                 // Any HTMLCoin prize money?
@@ -326,49 +347,33 @@ contract BiffyPlatinum {
                 // luckyNumber needs to be equal or lower than tokenLotteryChances.
                 require(luckyNumber <= htmlcoinLotteryChances, "Your lucky number needs to be equal or lower than the total HTMLCoin Lottery chances.");
                 
-                rewardAmount = playHtmlcoinLottery(luckyNumber);
-                
-                if(rewardAmount > 0){
-                    // Charges the Tokens played
-                    _transfer(msg.sender, owner, value);
-               
+                // Draws the number
+                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % htmlcoinLotteryChances;
+             
+                if (luckyNumber == randomNumber) {
+                    
+                    // Fetch the rewardAmount and charges the Tokens played
+                    rewardAmount = prizesBalances["htmlcoinLotteryPrize"];
+                    
+                    // Resets the prize
+                    prizesBalances["htmlcoinLotteryPrize"] = 0;
+                    
                     // Transfer the prize to the winner
                     msg.sender.transfer(rewardAmount);
                     
                     win = true;
+                    
+                } else {
+                    rewardAmount = 0;
+                    
+                    win = false;
+                    
+                    // Charges the played amount
+                    _transfer(msg.sender, owner, playedAmount);
                 }
                 
             }
 
     }// end playLottery
 
-    function playTokenLottery(uint luckyNumber) internal
-        returns (uint rewardAmount) {
-            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
-             
-            // uint randomNumber = SOME PROCESS to do random number betwen 0 and tokenLotteryChances, with some value being the winning number.
-            if (randomNumber == luckyNumber) {
-                
-                rewardAmount = prizesBalances["tokenLotteryPrize"];    
-                prizesBalances["tokenLotteryPrize"] = 0;
-                
-            } else {
-                rewardAmount = 0;
-            }
-    }// end playTokenLottery
-
-    function playHtmlcoinLottery(uint luckyNumber) internal
-        returns (uint rewardAmount) {
-            uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % htmlcoinLotteryChances; //htmlcoinLotteryChances;
-            
-            // uint randomNumber = SOME PROCESS to do random number betwen 0 and htmlcoinLotteryChances, with some value being the winning number.
-            if (randomNumber == luckyNumber) {
-                
-                rewardAmount = prizesBalances["htmlcoinLotteryPrize"];
-                prizesBalances["htmlcoinLotteryPrize"] = 0;
-                
-            } else {
-                rewardAmount = 0;
-            }
-    }// end playHtmlcoinLottery
 }// end contract BiffyPlatinum
