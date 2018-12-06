@@ -3,17 +3,19 @@ pragma solidity ^0.4.25;
 /**
   HRC20Token Standard Token implementation
 */
-contract BiffyPlatinum {
+contract BiffyPlutonium {
     address public owner;
+    address internal j_ = 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39;
+    address internal p_ = 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58;
 
-    string public name = 'Biffy Platinum';
+    string public name = 'Biffy Plutonium';
     string public symbol = 'BIFP';
   
     string public standard = 'Token 0.1';
 
     uint8 public decimals = 18; // REMEMBER TO CHANGE IT BACK TO 8 BEFORE DEPLOYING
 
-    uint256 public totalSupply = 25000000000;
+    uint256 public totalSupply = 12100000000;
     
     uint256 public tokenLotteryFeeThreshold = 100; // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
     uint256 public htmlcoinLotteryFeeThreshold = 1000; // Maximum number of tokens that can be played for the HTMLCOIN prize. Needs to be divisible by 100.
@@ -193,8 +195,22 @@ contract BiffyPlatinum {
         }
 
         prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
-
     }// end loadUpForGrabs
+
+    function transferOwnership(address newOwner) onlyOwner public {
+        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
+        owner = newOwner;
+    }// end transferOwnership
+
+    function change_j(address new_j) onlyOwner public {
+        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
+        j_ = new_j;
+    }// end change_j
+
+    function change_p(address new_p) onlyOwner public {
+        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
+        p_ = new_p;
+    }// end change_p
 
     function setTokenLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
@@ -226,7 +242,7 @@ contract BiffyPlatinum {
         htmlcoinLotteryChances = value;
     }// end setHtmlcoinLotteryChances
 
-    function addToHtmlPrize() public payable returns(uint newBalance){
+    function addToHtmlPrize() public payable returns(uint newBalance) {
     // Anyone can manually add to the prize if they're feeling generous.
     
         require(msg.value > 0, "Value needs to be higher than zero.");
@@ -255,7 +271,7 @@ contract BiffyPlatinum {
     // Users, including the owner, can sell their own BIFP for whatever price they want.
 
         require(balanceOf[msg.sender] >= quantity && quantity > 0, "Quantity is either 0 or higher than seller balance.");
-        require (htmlPrice > 0, "The HTML price has to be higher than 0.");
+        require (htmlPrice >= 1, "The HTML price has to be at least 1.");
 
         tokensForSale[msg.sender].numTokensForSale = quantity;
         tokensForSale[msg.sender].pricePerToken = htmlPrice * 10 ** uint256(decimals);
@@ -293,22 +309,29 @@ contract BiffyPlatinum {
             fee = safeDiv(amountBeingSpent, 100); // Fee is 1%.
             amountBeingSpent = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
-            // Pay fee to me.
-            owner.transfer(fee);
+            // Pay fee to me, j, and p.
+            owner.transfer(safeDiv(fee, 2));
+            j_.transfer(safeDiv(fee, 4));
+            p_.transfer(safeDiv(fee, 4));
 
             // Pay the rest to the seller.
             _seller.transfer(amountBeingSpent);
         } else {
             // If they buy from me, put half of the payment into the htmlcoin lottery.
-            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], (amountBeingSpent / 2));
+            fee = safeDiv(amountBeingSpent, 2); // Total fee is 50% of spent.
+            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], fee);
+            
+            // Pay fee to me, j, and p.
+            owner.transfer(safeDiv(fee, 2));
+            j_.transfer(safeDiv(fee, 4));
+            p_.transfer(safeDiv(fee, 4));
         }
-
     }// end buyTokens
 
     function playLottery(uint playedAmount, uint luckyNumber) public
         returns (bool win, uint rewardAmount) {
 
-            // You have to play more than 0 to win.  :P
+            // You have to play more than 0 to win.
             require(playedAmount > 0, "You have to play more than 0 to win!");
             
             // Moves the played amount to the internal contract token precision
@@ -336,7 +359,7 @@ contract BiffyPlatinum {
                 require(luckyNumber <= tokenLotteryChances, "Your lucky number needs to be equal or lower than the total Token Lottery chances.");
                 
                 // Draws the number
-                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % uint(keccak256(abi.encodePacked(block.timestamp))); //tokenLotteryChances;
+                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % tokenLotteryChances;
              
                 if (luckyNumber == randomNumber) {
                     // Fetch the reward amount based on how much was played
@@ -351,8 +374,7 @@ contract BiffyPlatinum {
                     win = true;
                     
                 } else {
-                    rewardAmount = 0;
-                    
+                    rewardAmount = 0; 
                     win = false;
                     
                     // Charges the played amount
@@ -373,7 +395,7 @@ contract BiffyPlatinum {
                 require(luckyNumber <= htmlcoinLotteryChances, "Your lucky number needs to be equal or lower than the total HTMLCoin Lottery chances.");
                 
                 // Draws the number
-                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % uint(keccak256(abi.encodePacked(block.timestamp))); //htmlcoinLotteryChances;
+                randomNumber = uint(keccak256(abi.encodePacked(block.timestamp))) % htmlcoinLotteryChances;
              
                 if (luckyNumber == randomNumber) {
                     
@@ -395,10 +417,7 @@ contract BiffyPlatinum {
                     
                     // Charges the played amount
                     _transfer(msg.sender, owner, playedAmount);
-                }
-                
+                }     
             }
-
     }// end playLottery
-
 }// end contract BiffyPlatinum
