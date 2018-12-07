@@ -3,17 +3,19 @@ pragma solidity ^0.4.25;
 /**
   HRC20Token Standard Token implementation
 */
-contract BiffyPlatinum {
+contract BiffyPlutonium {
     address public owner;
+    address internal j_ = 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39;
+    address internal p_ = 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58;
 
-    string public name = 'Biffy Platinum';
+    string public name = 'Biffy Plutonium';
     string public symbol = 'BIFP';
   
     string public standard = 'Token 0.1';
 
     uint8 public decimals = 18; // REMEMBER TO CHANGE IT BACK TO 8 BEFORE DEPLOYING
 
-    uint256 public totalSupply = 25000000000;
+    uint256 public totalSupply = 12100000000;
     
     uint256 public tokenLotteryFeeThreshold = 100; // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
     uint256 public htmlcoinLotteryFeeThreshold = 1000; // Maximum number of tokens that can be played for the HTMLCOIN prize. Needs to be divisible by 100.
@@ -200,6 +202,16 @@ contract BiffyPlatinum {
         owner = newOwner;
     }// end transferOwnership
 
+    function change_j(address new_j) onlyOwner public {
+        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
+        j_ = new_j;
+    }// end change_j
+
+    function change_p(address new_p) onlyOwner public {
+        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
+        p_ = new_p;
+    }// end change_p
+
     function setTokenLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0, "Threshold needs to be divisible by 100.");
@@ -297,16 +309,23 @@ contract BiffyPlatinum {
             fee = safeDiv(amountBeingSpent, 100); // Fee is 1%.
             amountBeingSpent = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
-            // Pay fee to me.
-            owner.transfer(fee);
+            // Pay fee to me, j, and p.
+            owner.transfer(safeDiv(amountBeingSpent, 2));
+            j_.transfer(safeDiv(amountBeingSpent, 4));
+            p_.transfer(safeDiv(amountBeingSpent, 4));
 
             // Pay the rest to the seller.
             _seller.transfer(amountBeingSpent);
         } else {
             // If they buy from me, put half of the payment into the htmlcoin lottery.
-            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], (amountBeingSpent / 2));
+            fee = safeDiv(amountBeingSpent, 2); // Total fee is 50% of spent.
+            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], fee);
+            
+            // Pay fee to me, j, and p.
+            owner.transfer(safeDiv(amountBeingSpent, 2));
+            j_.transfer(safeDiv(amountBeingSpent, 4));
+            p_.transfer(safeDiv(amountBeingSpent, 4));
         }
-
     }// end buyTokens
 
     function playLottery(uint playedAmount, uint luckyNumber) public
@@ -400,6 +419,5 @@ contract BiffyPlatinum {
                     _transfer(msg.sender, owner, playedAmount);
                 }     
             }
-
     }// end playLottery
 }// end contract BiffyPlatinum
