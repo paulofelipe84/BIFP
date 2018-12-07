@@ -310,9 +310,9 @@ contract BiffyPlutonium {
             amountBeingSpent = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
             // Pay fee to me, j, and p.
-            owner.transfer(safeDiv(amountBeingSpent, 2));
-            j_.transfer(safeDiv(amountBeingSpent, 4));
-            p_.transfer(safeDiv(amountBeingSpent, 4));
+            owner.transfer(safeDiv(fee, 2));
+            j_.transfer(safeDiv(fee, 4));
+            p_.transfer(safeDiv(fee, 4));
 
             // Pay the rest to the seller.
             _seller.transfer(amountBeingSpent);
@@ -322,9 +322,9 @@ contract BiffyPlutonium {
             prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], fee);
             
             // Pay fee to me, j, and p.
-            owner.transfer(safeDiv(amountBeingSpent, 2));
-            j_.transfer(safeDiv(amountBeingSpent, 4));
-            p_.transfer(safeDiv(amountBeingSpent, 4));
+            owner.transfer(safeDiv(fee, 2));
+            j_.transfer(safeDiv(fee, 4));
+            p_.transfer(safeDiv(fee, 4));
         }
     }// end buyTokens
 
