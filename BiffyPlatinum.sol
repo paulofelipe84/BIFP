@@ -163,6 +163,7 @@ contract BiffyPlutonium {
         returns (bool win, uint rewardAmount) {
 
             player = msg.sender;
+            amount = amount * 10 ** uint256(decimals); // Paulo... is this right?
 
             require(amount > 0, "Amount needs to be higher than zero.");
             require(balanceOf[player] >= amount, "Not enough balance.");
@@ -184,9 +185,12 @@ contract BiffyPlutonium {
             }
     }// upForGrabs(uint amount)
     
-    // TO DO: CREATE SETTER AND GETTER FOR PRIZESBALANCES
+    // TO DO: CREATE SETTER AND GETTER FOR PRIZESBALANCES -- I think we've done this...?
     
     function BIFP_loadUpForGrabs(uint amount) public {  
+
+        amount = amount * 10 ** uint256(decimals);
+        
         require(amount > 0, "Amount needs to be higher than zero.");
         require(balanceOf[msg.sender] >= amount, "Not enough balance.");
         
@@ -216,14 +220,14 @@ contract BiffyPlutonium {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0, "Threshold needs to be divisible by 100.");
         
-        tokenLotteryFeeThreshold = value;
+        tokenLotteryFeeThreshold = value * 10 ** uint256(decimals); // Paulo... is this right?;
     }// end setTokenLotteryFeeThreshold
 
     function setHtmlcoinLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0, "Threshold needs to be divisible by 100.");
         
-        htmlcoinLotteryFeeThreshold = value;
+        htmlcoinLotteryFeeThreshold = value * 10 ** uint256(decimals); // Paulo... is this right?;
     }// end setHtmlcoinLotteryFeeThreshold
 
     function switchTokenLottery(bool value) onlyOwner public {
@@ -248,6 +252,7 @@ contract BiffyPlutonium {
         require(msg.value > 0, "Value needs to be higher than zero.");
         
         // Making sure the contract contains the proper balance to pay the rewards
+        // What is address(this) and is it the same as msg.sender?
         require(address(this).balance >= prizesBalances["htmlcoinLotteryPrize"]);
         
         prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
@@ -260,7 +265,7 @@ contract BiffyPlutonium {
 
         require(value > 0, "Value needs to be higher than zero.");
         
-        value = value * 10 ** uint256(decimals);
+        value = value * 10 ** uint256(decimals); // Paulo, is this right?
         
         prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
         
@@ -269,12 +274,15 @@ contract BiffyPlutonium {
 
     function BIFP_setSell(uint quantity, uint htmlPrice) public {
     // Users, including the owner, can sell their own BIFP for whatever price they want.
+        quantity = quantity * 10 ** uint256(decimals); // Paulo... is this right?
+        htmlPrice = htmlPrice * 10 ** uint256(decimals); // Paulo... is this right?
 
         require(balanceOf[msg.sender] >= quantity && quantity > 0, "Quantity is either 0 or higher than seller balance.");
-        require (htmlPrice >= 1, "The HTML price has to be at least 1.");
+        require(htmlPrice >= 10 ** uint256(decimals), "The HTML price has to be at least 1.");
 
         tokensForSale[msg.sender].numTokensForSale = quantity; // Even owner must set this to prevent someone from buying all tokens from the contract.
-        tokensForSale[msg.sender].pricePerToken = htmlPrice * 10 ** uint256(decimals);
+
+        tokensForSale[msg.sender].pricePerToken = htmlPrice;
     }// end setSell 
 
     function BIFP_buyTokensFrom(address _seller) payable public {
@@ -283,7 +291,7 @@ contract BiffyPlutonium {
         require(_seller != owner, "Use the buyTokens function to buy directly from the contract.");
 
         // Seller must be actually selling an amount of tokens for a cost > 0.
-        require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0, "There aren't any Tokens being sold by this address.");
+        require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0, "There are no tokens being sold by this address.");
 
         // Keep track of htmlcoin being spent.
         uint256 amountBeingSpent = msg.value;
@@ -316,7 +324,7 @@ contract BiffyPlutonium {
 
         // Pay the rest to the seller.
         _seller.transfer(amountBeingSpent);
- 
+
     }// end buyTokens
 
     function BIFP_buyTokens() payable public {
@@ -367,7 +375,7 @@ contract BiffyPlutonium {
             playedAmount = playedAmount * 10 ** uint256(decimals);
             
             // You don't have enough Tokens!
-            require(balanceOf[msg.sender] >= playedAmount, "You don't have that much Tokens!");
+            require(balanceOf[msg.sender] >= playedAmount, "You do not have that many tokens!");
             
             // luckyNumber needs to be equal or higher than 0.
             require(luckyNumber >= 0, "Your lucky number needs to be equal or higher than 0.");
