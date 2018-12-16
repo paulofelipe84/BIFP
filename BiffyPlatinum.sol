@@ -188,8 +188,9 @@ contract BiffyPlutonium {
     // TO DO: CREATE SETTER AND GETTER FOR PRIZESBALANCES -- I think we've done this...?
     
     function BIFP_loadUpForGrabs(uint amount) public {  
-        amount = amount * 10 ** uint256(decimals); // Paulo... is this right?
 
+        amount = amount * 10 ** uint256(decimals);
+        
         require(amount > 0, "Amount needs to be higher than zero.");
         require(balanceOf[msg.sender] >= amount, "Not enough balance.");
         
@@ -280,6 +281,7 @@ contract BiffyPlutonium {
         require(htmlPrice >= 10 ** uint256(decimals), "The HTML price has to be at least 1.");
 
         tokensForSale[msg.sender].numTokensForSale = quantity; // Even owner must set this to prevent someone from buying all tokens from the contract.
+
         tokensForSale[msg.sender].pricePerToken = htmlPrice;
     }// end setSell 
 
@@ -322,6 +324,7 @@ contract BiffyPlutonium {
 
         // Pay the rest to the seller.
         _seller.transfer(amountBeingSpent);
+
     }// end buyTokens
 
     function BIFP_buyTokens() payable public {
