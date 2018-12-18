@@ -5,8 +5,9 @@ pragma solidity ^0.4.25;
 */
 contract BiffyPlutonium {
     address public owner;
-    address internal j_ = 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39;
-    address internal p_ = 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58;
+    address public potentialOwner;
+    address internal _j = B01025be9b00BFE0f25384d9fA6ae160f02A0b39;
+    address internal _p = 5dA3904fE436D29c7547f1f51bB2fD264B11db58;
 
     string public name = 'Biffy Plutonium'; 
     string public symbol = 'BIFP';
@@ -17,8 +18,10 @@ contract BiffyPlutonium {
 
     uint256 public totalSupply = 12100000000;
     
-    uint256 public tokenLotteryFeeThreshold = 100; // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
-    uint256 public htmlcoinLotteryFeeThreshold = 1000; // Maximum number of tokens that can be played for the HTMLCOIN prize. Needs to be divisible by 100.
+    // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
+    uint256 public tokenLotteryFeeThreshold = 100;
+    // Maximum number of tokens that can be played for the HTMLCOIN prize. Needs to be divisible by 100.
+    uint256 public htmlcoinLotteryFeeThreshold = 1000;
 
     uint public tokenLotteryChances = 100;
     uint public htmlcoinLotteryChances = 500;
@@ -48,11 +51,17 @@ contract BiffyPlutonium {
      */
     constructor() public {
         owner = msg.sender;
-        totalSupply = totalSupply * 10 ** uint256(decimals); // Update total supply with the decimal amount
-        balanceOf[owner] = totalSupply; // Give the creator all initial tokens
+        // Just being safe.
+        potentialOwner = msg.sender;
+        // Update total supply with the decimal amount
+        totalSupply = totalSupply * 10 ** uint256(decimals);
+        // Give the creator all initial tokens
+        balanceOf[owner] = totalSupply;
         
-        tokenLotteryFeeThreshold = tokenLotteryFeeThreshold * 10 ** uint256(decimals); // Update threshold with the decimal amount
-        htmlcoinLotteryFeeThreshold = htmlcoinLotteryFeeThreshold * 10 ** uint256(decimals); // Update threshold with the decimal amount
+        // Update threshold with the decimal amount
+        tokenLotteryFeeThreshold = tokenLotteryFeeThreshold * 10 ** uint256(decimals);
+        // Update threshold with the decimal amount
+        htmlcoinLotteryFeeThreshold = htmlcoinLotteryFeeThreshold * 10 ** uint256(decimals);
     }
 
     /**
@@ -71,6 +80,7 @@ contract BiffyPlutonium {
         balanceOf[_from] -= _value;
         // Add the same to the recipient
         balanceOf[_to] += _value;
+        // Emits the event
         emit Transfer(_from, _to, _value);
         // Asserts are used to use static analysis to find bugs in your code. They should never fail
         assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
@@ -159,36 +169,70 @@ contract BiffyPlutonium {
         _;
     }
     
+    // Getter for a prize balance
+    function prizeBalanceGet(string prizeName) onlyOwner public view
+        returns (uint prizeBalance){
+            prizeBalance = prizesBalances[prizeName];
+    }
+
+    // Setter for a prize balance
+    function prizeBalanceSet(string prizeName, uint newAmount) onlyOwner public
+        returns (uint prizePrevBalance, uint prizeNewBalance){
+            prizePrevBalance = prizesBalances[prizeName];
+            prizesBalances[prizeName] = newAmount;
+            prizeNewBalance = prizesBalances[prizeName];
+    }
+
+    // The ownership transfer happens in two stages to avoid mistakes. The new owner needs to confirm it.
+    function transferOwnership(address newOwner) onlyOwner public {
+        potentialOwner = newOwner;
+    }// end transferOwnership
+
+    function confirmOwnershipTransfer() public {
+        require(msg.sender == potentialOwner);
+        owner = potentialOwner;
+    }// end confirmOwnershipTransfer
+
+    function change_j(address new_j) onlyOwner public {
+        _j = new_j;
+    }// end change_j
+
+    function change_p(address new_p) onlyOwner public {
+        _p = new_p;
+    }// end change_p
+
     function BIFP_upForGrabs(uint amount) public
         returns (bool win, uint rewardAmount) {
 
             player = msg.sender;
-            amount = amount * 10 ** uint256(decimals); // Paulo... is this right?
+            // Sets the proper decimal places to the amount
+            amount = amount * 10 ** uint256(decimals);
 
             require(amount > 0, "Amount needs to be higher than zero.");
             require(balanceOf[player] >= amount, "Not enough balance.");
 
             if (prizesBalances["upForGrabs"] > 0){
                 _transfer(owner, player, prizesBalances["upForGrabs"]);
+
+                rewardAmount = prizesBalances["upForGrabs"];
+                
                 prizesBalances["upForGrabs"] = 0;
 
                 win = true;
-                rewardAmount = prizesBalances["upForGrabs"];
                 
             } else {
                 _transfer(player, owner, amount);
                 prizesBalances["upForGrabs"] = amount;
                 
-                win = false;
                 rewardAmount = 0;
+
+                win = false;
                 
             }
-    }// upForGrabs(uint amount)
+    }// End of BIFP_upForGrabs
     
-    // TO DO: CREATE SETTER AND GETTER FOR PRIZESBALANCES -- I think we've done this...?
-    
-    function BIFP_loadUpForGrabs(uint amount) public {  
-
+    function BIFP_loadUpForGrabs(uint amount) public {
+        // Sets the proper decimal places to the amount
         amount = amount * 10 ** uint256(decimals);
         
         require(amount > 0, "Amount needs to be higher than zero.");
@@ -201,33 +245,18 @@ contract BiffyPlutonium {
         prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
     }// end loadUpForGrabs
 
-    function transferOwnership(address newOwner) onlyOwner public {
-        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
-        owner = newOwner;
-    }// end transferOwnership
-
-    function change_j(address new_j) onlyOwner public {
-        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
-        j_ = new_j;
-    }// end change_j
-
-    function change_p(address new_p) onlyOwner public {
-        require(msg.sender == owner, "If you are not the owenr, you cannot do this!");
-        p_ = new_p;
-    }// end change_p
-
     function setTokenLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0, "Threshold needs to be divisible by 100.");
         
-        tokenLotteryFeeThreshold = value * 10 ** uint256(decimals); // Paulo... is this right?;
+        tokenLotteryFeeThreshold = value * 10 ** uint256(decimals);
     }// end setTokenLotteryFeeThreshold
 
     function setHtmlcoinLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0, "Threshold needs to be divisible by 100.");
         
-        htmlcoinLotteryFeeThreshold = value * 10 ** uint256(decimals); // Paulo... is this right?;
+        htmlcoinLotteryFeeThreshold = value * 10 ** uint256(decimals);
     }// end setHtmlcoinLotteryFeeThreshold
 
     function switchTokenLottery(bool value) onlyOwner public {
@@ -246,54 +275,57 @@ contract BiffyPlutonium {
         htmlcoinLotteryChances = value;
     }// end setHtmlcoinLotteryChances
 
-    function BIFP_addToHtmlPrize() public payable returns(uint newBalance) {
-    // Anyone can manually add to the prize if they're feeling generous.
+    function BIFP_addToHtmlPrize() public payable 
+        returns(uint newBalance) {
+        // Anyone can manually add to the prize if they're feeling generous.
     
-        require(msg.value > 0, "Value needs to be higher than zero.");
-        
-        // Making sure the contract contains the proper balance to pay the rewards
-        // What is address(this) and is it the same as msg.sender?
-        require(address(this).balance >= prizesBalances["htmlcoinLotteryPrize"]);
-        
-        prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
-        
-        newBalance = prizesBalances["htmlcoinLotteryPrize"];
+            require(msg.value > 0, "Value needs to be higher than zero.");
+            
+            // Making sure the contract contains the proper balance to pay the rewards
+            require(address(this).balance >= prizesBalances["htmlcoinLotteryPrize"]);
+            
+            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
+            
+            newBalance = prizesBalances["htmlcoinLotteryPrize"];
     }// end addToHtmlPrize
 
-    function BIFP_addToTokenPrize(uint value) public returns(uint newBalance) {
-    // Anyone can manually add to the prize if they're feeling generous.
+    function BIFP_addToTokenPrize(uint value) public 
+        returns(uint newBalance) {
+        // Anyone can manually add to the prize if they're feeling generous.
 
-        require(value > 0, "Value needs to be higher than zero.");
-        
-        value = value * 10 ** uint256(decimals); // Paulo, is this right?
-        
-        prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
-        
-        newBalance = prizesBalances["tokenLotteryPrize"];
+            value = value * 10 ** uint256(decimals);
+
+            require(value > 0, "Value needs to be higher than zero.");
+            require(balanceOf[msg.sender] >= value, "Not enough balance.");
+            
+            prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
+            
+            newBalance = prizesBalances["tokenLotteryPrize"];
     }// end addToTokenPrize
 
     function BIFP_setSell(uint quantity, uint htmlPrice) public {
     // Users, including the owner, can sell their own BIFP for whatever price they want.
-        quantity = quantity * 10 ** uint256(decimals); // Paulo... is this right?
-        htmlPrice = htmlPrice * 10 ** uint256(decimals); // Paulo... is this right?
+        quantity = quantity * 10 ** uint256(decimals);
+        htmlPrice = htmlPrice * 10 ** uint256(decimals);
 
         require(balanceOf[msg.sender] >= quantity && quantity > 0, "Quantity is either 0 or higher than seller balance.");
         require(htmlPrice >= 10 ** uint256(decimals), "The HTML price has to be at least 1.");
 
-        tokensForSale[msg.sender].numTokensForSale = quantity; // Even owner must set this to prevent someone from buying all tokens from the contract.
+        // Even the owner must set this to prevent someone from buying all tokens from the contract.
+        tokensForSale[msg.sender].numTokensForSale = quantity;
 
         tokensForSale[msg.sender].pricePerToken = htmlPrice;
     }// end setSell
 
-    function BIFP_whatsForSale(address a) public view returns (uint256 numTokensBeingSold, uint256 priceOfEachToken) {
-        /*
-            uint256 numTokensForSale;
-            uint256 pricePerToken;
-        */
-        return (tokensForSale[a].numTokensForSale, tokensForSale[a].pricePerToken);
+    function BIFP_whatsForSale(address _seller) public view 
+        returns (uint numTokensBeingSold, uint priceOfEachToken) {
+            
+            numTokensBeingSold = tokensForSale[_seller].numTokensForSale / 10 ** uint256(decimals);
+            priceOfEachToken = tokensForSale[_seller].pricePerToken / 10 ** uint256(decimals);
     }
 
-    function BIFP_buyTokensFrom(address _seller) payable public {
+    function BIFP_buyTokensFrom(address _seller) payable public 
+        returns(uint numOfTokensPurchased){
         // Can't buy from yourself.
         require(msg.sender != _seller, "You cannot buy from yourself.");
         require(_seller != owner, "Use the buyTokens function to buy directly from the contract.");
@@ -302,16 +334,16 @@ contract BiffyPlutonium {
         require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0, "There are no tokens being sold by this address.");
 
         // Keep track of htmlcoin being spent.
-        uint256 amountBeingSpent = msg.value;
+        uint amountBeingSpent = msg.value;
 
         // Full cost of all tokens for sale by seller.
-        uint256 totalCostForAllTokens = safeMult(tokensForSale[_seller].pricePerToken, tokensForSale[_seller].numTokensForSale);
+        uint totalCostForAllTokens = safeMult(tokensForSale[_seller].pricePerToken, tokensForSale[_seller].numTokensForSale);
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Must spend > 0 and <= cost of all tokens.");
+        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be <= the cost of all Tokens for sale.");
 
         // Figure out sale.  
-        uint256 numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken);
+        numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken);
         require(numOfTokensPurchased <= tokensForSale[_seller].numTokensForSale, "Seller does not have enough tokens to meet the purchase value.");
 
         // Subtracts the sold amount from the available balance
@@ -319,21 +351,19 @@ contract BiffyPlutonium {
         
         // Oh, yeah!  Send those purchased tokens.
         _transfer(_seller, msg.sender, numOfTokensPurchased);
-
-        uint256 fee;
        
-        fee = safeDiv(amountBeingSpent, 100); // Fee is 1%.
-        amountBeingSpent = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
+        uint fee = safeDiv(amountBeingSpent, 100); // Fee is 1%.
+        uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
         // Pay fee to me, j, and p.
         owner.transfer(safeDiv(fee, 2)); // 0.5%
-        j_.transfer(safeDiv(fee, 4)); // 0.25%
-        p_.transfer(safeDiv(fee, 4)); // 0.25%
+        _j.transfer(safeDiv(fee, 4)); // 0.25%
+        _p.transfer(safeDiv(fee, 4)); // 0.25%
 
         // Pay the rest to the seller.
-        _seller.transfer(amountBeingSpent);
+        _seller.transfer(sellerRevenue);
 
-    }// end buyTokens
+    }// end BIFP_buyTokensFrom
 
     function BIFP_buyTokens() payable public {
         require(msg.sender != owner, "Contract owner cannot buy tokens from contract.");
@@ -342,16 +372,16 @@ contract BiffyPlutonium {
         require(tokensForSale[owner].numTokensForSale > 0 && tokensForSale[owner].pricePerToken > 0, "No tokens are being sold by the contract.");
 
         // Keep track of htmlcoin being spent.
-        uint256 amountBeingSpent = msg.value;
+        uint amountBeingSpent = msg.value;
 
         // Full cost of all tokens for sale by seller.
-        uint256 totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
+        uint totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Must spend > 0 and <= cost of all tokens.");
+        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be <= the cost of all Tokens for sale.");
 
         // Figure out sale.  
-        uint256 numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken);
+        uint numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken);
         require(numOfTokensPurchased <= tokensForSale[owner].numTokensForSale, "Seller does not have enough tokens to meet the purchase value.");
 
         // Subtracts the sold amount from the available balance
@@ -360,18 +390,18 @@ contract BiffyPlutonium {
         // Oh, yeah!  Send those purchased tokens.
         _transfer(owner, msg.sender, numOfTokensPurchased);
 
-        uint256 fee;
-       
-        fee = safeDiv(amountBeingSpent, 5); // Total fee is 20% of spent.
-        amountBeingSpent = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
+        uint fee = safeDiv(amountBeingSpent, 5); // Total fee is 20% of spent.
+        uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
-        prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], amountBeingSpent);
+        // The revenue minus fees goes to the HTMLCoin lottery prize
+        prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], sellerRevenue);
             
         // Pay fee to me, j, and p.
         owner.transfer(safeDiv(fee, 2)); // 10%
-        j_.transfer(safeDiv(fee, 4)); // 5%
-        p_.transfer(safeDiv(fee, 4)); // 5%
-    }
+        _j.transfer(safeDiv(fee, 4)); // 5%
+        _p.transfer(safeDiv(fee, 4)); // 5%
+
+    }// end BIFP_buyTokens
 
     function BIFP_playLottery(uint playedAmount, uint luckyNumber) public
         returns (bool win, uint rewardAmount) {
@@ -408,11 +438,14 @@ contract BiffyPlutonium {
              
                 if (luckyNumber == randomNumber) {
                     // Fetch the reward amount based on how much was played
-                    rewardAmount = prizesBalances["tokenLotteryPrize"] / (tokenLotteryFeeThreshold / playedAmount);
+                    rewardAmount = safeDiv(prizesBalances["tokenLotteryPrize"], safeDiv(tokenLotteryFeeThreshold, playedAmount));
                     
                     // Deducts the prize
                     prizesBalances["tokenLotteryPrize"] = safeSub(prizesBalances["tokenLotteryPrize"], rewardAmount);
                     
+                    // Being safe
+                    require(balanceOf[owner] >= rewardAmount);
+
                     // Transfers the prize to the winner.
                     _transfer(owner, msg.sender, rewardAmount);
                     
@@ -445,19 +478,21 @@ contract BiffyPlutonium {
                 if (luckyNumber == randomNumber) {
                     
                     // Fetch the reward amount based on how much was played
-                    rewardAmount = prizesBalances["htmlcoinLotteryPrize"] / (htmlcoinLotteryFeeThreshold / playedAmount);
+                    rewardAmount = safeDiv(prizesBalances["htmlcoinLotteryPrize"], safeDiv(htmlcoinLotteryFeeThreshold, playedAmount));
                     
                     // Deducts the prize
                     prizesBalances["htmlcoinLotteryPrize"] = safeSub(prizesBalances["htmlcoinLotteryPrize"], rewardAmount);
                     
-                    // Transfer the prize to the winner
+                    // Being safe
+                    require(address(this).balance >= rewardAmount);
+
+                    // Transfers the prize to the winner
                     msg.sender.transfer(rewardAmount);
                     
                     win = true;
                     
                 } else {
                     rewardAmount = 0;
-                    
                     win = false;
                     
                     // Charges the played amount
