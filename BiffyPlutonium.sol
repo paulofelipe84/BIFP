@@ -283,7 +283,15 @@ contract BiffyPlutonium {
         tokensForSale[msg.sender].numTokensForSale = quantity; // Even owner must set this to prevent someone from buying all tokens from the contract.
 
         tokensForSale[msg.sender].pricePerToken = htmlPrice;
-    }// end setSell 
+    }// end setSell
+
+    function BIFP_whatsForSale(address a) public view returns (uint256 numTokensBeingSold, uint256 priceOfEachToken) {
+        /*
+            uint256 numTokensForSale;
+            uint256 pricePerToken;
+        */
+        return (tokensForSale[a].numTokensForSale, tokensForSale[a].pricePerToken);
+    }
 
     function BIFP_buyTokensFrom(address _seller) payable public {
         // Can't buy from yourself.
