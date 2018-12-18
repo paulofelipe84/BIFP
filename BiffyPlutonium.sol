@@ -6,8 +6,8 @@ pragma solidity ^0.4.25;
 contract BiffyPlutonium {
     address public owner;
     address public potentialOwner;
-    address internal _j = B01025be9b00BFE0f25384d9fA6ae160f02A0b39;
-    address internal _p = 5dA3904fE436D29c7547f1f51bB2fD264B11db58;
+    address internal _j = 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39; //Remove the 0x before deploying
+    address internal _p = 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58; //Remove the 0x before deploying
 
     string public name = 'Biffy Plutonium'; 
     string public symbol = 'BIFP';
