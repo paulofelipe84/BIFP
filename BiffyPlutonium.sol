@@ -6,8 +6,17 @@ pragma solidity ^0.4.25;
 contract BiffyPlutonium {
     address public owner;
     address public potentialOwner;
-    address internal _j = 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39; //Remove the 0x before deploying
-    address internal _p = 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58; //Remove the 0x before deploying
+    address internal _j = 0x4B0897b0513fdC7C541B6d9D7E929C4e5364D2dB; // 0xB01025be9b00BFE0f25384d9fA6ae160f02A0b39; //Remove the 0x before deploying
+    address internal _p = 0x583031D1113aD414F02576BD6afaBfb302140225; // 0x5dA3904fE436D29c7547f1f51bB2fD264B11db58; //Remove the 0x before deploying
+    address internal _n = 0x21a2D93276b9C431a725166DAA94Eea6d218c442;
+    
+    uint internal biffCut = 50;
+    uint internal jCut = 20;
+    uint internal pCut = 20;
+    uint internal nCut = 10;
+    
+    uint internal feeFromSaleIfOwner = 20; // This means 20%.
+    uint internal feeFromSaleIfSeller = 1; // This means 1%.
 
     string public name = 'Biffy Plutonium'; 
     string public symbol = 'BIFP';
@@ -305,65 +314,119 @@ contract BiffyPlutonium {
 
     function BIFP_setSell(uint quantity, uint htmlPrice) public {
     // Users, including the owner, can sell their own BIFP for whatever price they want.
-        quantity = quantity * 10 ** uint256(decimals);
-        htmlPrice = htmlPrice * 10 ** uint256(decimals);
-
+        // quantity = quantity * 10 ** uint256(decimals);
+        // htmlPrice = htmlPrice * 10 ** uint256(decimals);
+        
         require(balanceOf[msg.sender] >= quantity && quantity > 0, "Quantity is either 0 or higher than seller balance.");
-        require(htmlPrice >= 10 ** uint256(decimals), "The HTML price has to be at least 1.");
+        require(htmlPrice >= 1, "The HTML price has to be at least 1.");
 
         // Even the owner must set this to prevent someone from buying all tokens from the contract.
         tokensForSale[msg.sender].numTokensForSale = quantity;
-
         tokensForSale[msg.sender].pricePerToken = htmlPrice;
     }// end setSell
 
     function BIFP_whatsForSale(address _seller) public view 
-        returns (uint numTokensBeingSold, uint priceOfEachToken) {
+        returns(uint numTokensBeingSold, uint priceOfEachToken) {
             
-            numTokensBeingSold = tokensForSale[_seller].numTokensForSale / 10 ** uint256(decimals);
-            priceOfEachToken = tokensForSale[_seller].pricePerToken / 10 ** uint256(decimals);
+            numTokensBeingSold = tokensForSale[_seller].numTokensForSale; // / 10 ** uint256(decimals);
+            priceOfEachToken = tokensForSale[_seller].pricePerToken; // / 10 ** uint256(decimals);
     }
 
     function BIFP_buyTokensFrom(address _seller) payable public 
         returns(uint numOfTokensPurchased){
-        // Can't buy from yourself.
-        require(msg.sender != _seller, "You cannot buy from yourself.");
-        require(_seller != owner, "Use the buyTokens function to buy directly from the contract.");
+        require(msg.sender != _seller, "Cannot buy from self.");
 
-        // Seller must be actually selling an amount of tokens for a cost > 0.
-        require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0, "There are no tokens being sold by this address.");
+        // Contract must have a sale price set > 0 AND must still have a remaining balance.
+        require(tokensForSale[_seller].numTokensForSale > 0 && tokensForSale[_seller].pricePerToken > 0, "No tokens are being sold by address.");
 
         // Keep track of htmlcoin being spent.
         uint amountBeingSpent = msg.value;
 
         // Full cost of all tokens for sale by seller.
         uint totalCostForAllTokens = safeMult(tokensForSale[_seller].pricePerToken, tokensForSale[_seller].numTokensForSale);
+        totalCostForAllTokens = totalCostForAllTokens * 10 ** uint256(decimals);
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be <= the cost of all Tokens for sale.");
+        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.");
 
         // Figure out sale.  
-        numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken);
-        require(numOfTokensPurchased <= tokensForSale[_seller].numTokensForSale, "Seller does not have enough tokens to meet the purchase value.");
+        numOfTokensPurchased = safeDiv(amountBeingSpent, (tokensForSale[_seller].pricePerToken * 10 ** uint(decimals)));
+        require(numOfTokensPurchased <= (tokensForSale[_seller].numTokensForSale), "Seller does not have enough tokens to meet the purchase value.");
 
         // Subtracts the sold amount from the available balance
         tokensForSale[_seller].numTokensForSale = safeSub(tokensForSale[_seller].numTokensForSale, numOfTokensPurchased);
         
         // Oh, yeah!  Send those purchased tokens.
-        _transfer(_seller, msg.sender, numOfTokensPurchased);
-       
-        uint fee = safeDiv(amountBeingSpent, 100); // Fee is 1%.
-        uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
+        numOfTokensPurchased = numOfTokensPurchased * 10 ** uint256(decimals);
+        _transfer(owner, msg.sender, numOfTokensPurchased);
 
+        uint fee = safeDiv(amountBeingSpent, feeFromSaleIfSeller); // Total fee is 1% of spent.
+        uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
+    
         // Pay fee to me, j, and p.
-        owner.transfer(safeDiv(fee, 2)); // 0.5%
-        _j.transfer(safeDiv(fee, 4)); // 0.25%
-        _p.transfer(safeDiv(fee, 4)); // 0.25%
+        owner.transfer(safeDiv(fee, biffCut)); // 25%
+        _j.transfer(safeDiv(fee, jCut)); // 25%
+        _p.transfer(safeDiv(fee, pCut)); // 25%
+        _n.transfer(safeDiv(fee, nCut)); // 25%
 
         // Pay the rest to the seller.
         _seller.transfer(sellerRevenue);
 
     }// end BIFP_buyTokensFrom
+    
+    function BIFP_setSellerIsOwnerFeePercent(uint f) public onlyOwner {
+        require(f >= 1 && f <= 100, "Must be between 1 and 100.");
+ 
+        feeFromSaleIfOwner = f;
+    }// end BIFP_setSellerIsOwnerFeePercent
+    
+    function BIFP_setSellerFeePercent(uint f) public onlyOwner {
+        require(f >= 1 && f <= 100, "Must be between 1 and 100.");
+
+        feeFromSaleIfSeller = f;
+    }// end BIFP_setSellerFeePercent
+    
+    function BIFP_setFeeCuts(uint b, uint j, uint p, uint n) public onlyOwner {
+        require((b + j + p + n) == 100, "Needs to total 100.");
+        biffCut = b;
+        jCut = j;
+        pCut = p;
+        nCut = n;
+    }// end BIFP_setFeeCuts
+    
+    function BIFP_getFees() onlyOwner public view
+        returns (uint feeOwnerSetting, uint feeSellerSetting) {
+
+        return (feeFromSaleIfOwner, feeFromSaleIfSeller);
+    }// end BIFP_getFees()
+    
+    function BIFP_getCuts() onlyOwner public view
+        returns (uint BiffCutSetting, uint JCutSetting, uint PCutSetting, uint NCutSetting) {
+    
+        return (biffCut, jCut, pCut, nCut);
+    }// end BIFP_getCuts
+    
+    function BIFP_testFeeAndCuts(uint who, uint fakeAmount) onlyOwner public view 
+        returns (uint feeCollected, uint biffGot, uint jGot, uint pGot, uint nGot) {
+            uint fee;
+            
+            if (who == 0) {
+                fee = feeFromSaleIfOwner;
+            } else {
+                fee = feeFromSaleIfSeller;
+            }
+            
+            feeCollected = safeDiv(safeMult(fakeAmount, fee), 100);
+            biffGot = safeDiv(safeMult(feeCollected, biffCut), 100);
+            jGot = safeDiv(safeMult(feeCollected, jCut), 100);
+            pGot = safeDiv(safeMult(feeCollected, pCut), 100);
+            nGot = safeDiv(safeMult(feeCollected, nCut), 100);
+            uint totalGot = biffGot + jGot + pGot + nGot;
+            
+            require((totalGot) == feeCollected, "Your percentages do not work because of how solidity handles values without floating point.");
+            
+            return (feeCollected, biffGot, jGot, pGot, nGot);
+    }// end BIFP_testFeeAndCuts
 
     function BIFP_buyTokens() payable public {
         require(msg.sender != owner, "Contract owner cannot buy tokens from contract.");
@@ -376,35 +439,37 @@ contract BiffyPlutonium {
 
         // Full cost of all tokens for sale by seller.
         uint totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
+        totalCostForAllTokens = totalCostForAllTokens * 10 ** uint256(decimals);
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be <= the cost of all Tokens for sale.");
+        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens, "Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.");
 
         // Figure out sale.  
-        uint numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken);
-        require(numOfTokensPurchased <= tokensForSale[owner].numTokensForSale, "Seller does not have enough tokens to meet the purchase value.");
+        uint numOfTokensPurchased = safeDiv(amountBeingSpent, (tokensForSale[owner].pricePerToken * 10 ** uint(decimals)));
+        require(numOfTokensPurchased <= (tokensForSale[owner].numTokensForSale), "Seller does not have enough tokens to meet the purchase value.");
 
         // Subtracts the sold amount from the available balance
         tokensForSale[owner].numTokensForSale = safeSub(tokensForSale[owner].numTokensForSale, numOfTokensPurchased);
         
         // Oh, yeah!  Send those purchased tokens.
+        numOfTokensPurchased = numOfTokensPurchased * 10 ** uint256(decimals);
         _transfer(owner, msg.sender, numOfTokensPurchased);
 
-        uint fee = safeDiv(amountBeingSpent, 5); // Total fee is 20% of spent.
+        uint fee = safeDiv(amountBeingSpent, feeFromSaleIfOwner); // Total fee is 20% of spent.
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
         // The revenue minus fees goes to the HTMLCoin lottery prize
         prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], sellerRevenue);
             
-        // Pay fee to me, j, and p.
-        owner.transfer(safeDiv(fee, 2)); // 10%
-        _j.transfer(safeDiv(fee, 4)); // 5%
-        _p.transfer(safeDiv(fee, 4)); // 5%
-
+        // Pay fee to me, j, p, and n.
+        owner.transfer(safeDiv(fee, biffCut)); // 25%
+        _j.transfer(safeDiv(fee, jCut)); // 25%
+        _p.transfer(safeDiv(fee, pCut)); // 25%
+        _n.transfer(safeDiv(fee, nCut)); // 25%
     }// end BIFP_buyTokens
 
     function BIFP_playLottery(uint playedAmount, uint luckyNumber) public
-        returns (bool win, uint rewardAmount) {
+        returns (bool win, uint rewardAmount, uint randomNumber) {
 
             // You have to play more than 0 to win.
             require(playedAmount > 0, "You have to play more than 0 to win!");
@@ -418,7 +483,7 @@ contract BiffyPlutonium {
             // luckyNumber needs to be equal or higher than 0.
             require(luckyNumber >= 0, "Your lucky number needs to be equal or higher than 0.");
             
-            uint randomNumber;
+            // uint randomNumber;
             
             if (playedAmount <= tokenLotteryFeeThreshold) { //If it's a Token Lottery
                 // Is Token Lottery On?
@@ -497,7 +562,7 @@ contract BiffyPlutonium {
                     
                     // Charges the played amount
                     _transfer(msg.sender, owner, playedAmount);
-                }     
+                }  
             }
     }// end playLottery
 }// end contract BiffyPlutonium
