@@ -1,2 +1,2 @@
 # BIFP
-Biffy Platinum
+Biffy Plutonium
