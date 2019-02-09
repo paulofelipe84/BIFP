@@ -68,19 +68,25 @@ contract BiffyPlutonium {
         balanceOf[owner] = totalSupply;
         
         // Update threshold with the decimal amount
-        tokenLotteryFeeThreshold = tokenLotteryFeeThreshold * 10 ** uint256(decimals);
+        // tokenLotteryFeeThreshold = tokenLotteryFeeThreshold * 10 ** uint256(decimals);
         // Update threshold with the decimal amount
-        htmlcoinLotteryFeeThreshold = htmlcoinLotteryFeeThreshold * 10 ** uint256(decimals);
+        // htmlcoinLotteryFeeThreshold = htmlcoinLotteryFeeThreshold * 10 ** uint256(decimals);
     }
 
     /**
      * Internal transfer, only can be called by this contract
      */
     function _transfer(address _from, address _to, uint _value) internal {
+        uint256 adjustedFromBalance = safeSub(balanceOf[_from], (tokensForSale[_from].numTokensForSale * 10 ** uint256(decimals)));
+        if (_from == owner) {
+            adjustedFromBalance = safeSub(adjustedFromBalance, (prizesBalances["upForGrabs"] * 10 ** uint256(decimals)));
+            adjustedFromBalance = safeSub(adjustedFromBalance, (prizesBalances["tokenLotteryPrize"] * 10 ** uint256(decimals)));
+        }
+        
         // Prevent transfer to 0x0 address. Use burn() instead
         require(_to != 0x0);
         // Check if the sender has enough
-        require(balanceOf[_from] >= _value);
+        require(adjustedFromBalance >= _value);
         // Check for overflows
         require(balanceOf[_to] + _value >= balanceOf[_to]);
         // Save this for an assertion in the future
@@ -241,14 +247,20 @@ contract BiffyPlutonium {
     }// End of BIFP_upForGrabs
     
     function BIFP_loadUpForGrabs(uint amount) public {
+        /*
+            To simplify things, the value stored in prizesBalances["upForGrabs"] should be
+            a normal int.  When the time comes to do actual transfers, the amount is 
+            calculated to the proper decimal.
+        */
+        
         // Sets the proper decimal places to the amount
-        amount = amount * 10 ** uint256(decimals);
+        uint256 _amount = amount * 10 ** uint256(decimals);
         
         require(amount > 0, "Amount needs to be higher than zero.");
-        require(balanceOf[msg.sender] >= amount, "Not enough balance.");
+        require(balanceOf[msg.sender] >= _amount, "Not enough balance.");
         
-        if(msg.sender != owner){
-            _transfer(msg.sender, owner, amount);
+        if (msg.sender != owner){
+            _transfer(msg.sender, owner, _amount);
         }
 
         prizesBalances["upForGrabs"] = safeAdd(prizesBalances["upForGrabs"], amount);
@@ -287,7 +299,7 @@ contract BiffyPlutonium {
     function BIFP_addToHtmlPrize() public payable 
         returns(uint newBalance) {
         // Anyone can manually add to the prize if they're feeling generous.
-    
+            
             require(msg.value > 0, "Value needs to be higher than zero.");
             
             // Making sure the contract contains the proper balance to pay the rewards
@@ -302,10 +314,14 @@ contract BiffyPlutonium {
         returns(uint newBalance) {
         // Anyone can manually add to the prize if they're feeling generous.
 
-            value = value * 10 ** uint256(decimals);
+            uint256 _value = value * 10 ** uint256(decimals);
 
             require(value > 0, "Value needs to be higher than zero.");
-            require(balanceOf[msg.sender] >= value, "Not enough balance.");
+            require(balanceOf[msg.sender] >= _value, "Not enough balance.");
+            
+            if (msg.sender != owner) {
+                _transfer(msg.sender, owner, _value);
+            }
             
             prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
             
@@ -475,10 +491,10 @@ contract BiffyPlutonium {
             require(playedAmount > 0, "You have to play more than 0 to win!");
             
             // Moves the played amount to the internal contract token precision
-            playedAmount = playedAmount * 10 ** uint256(decimals);
+            uint256 _playedAmount = playedAmount * 10 ** uint256(decimals);
             
             // You don't have enough Tokens!
-            require(balanceOf[msg.sender] >= playedAmount, "You do not have that many tokens!");
+            require(balanceOf[msg.sender] >= _playedAmount, "You do not have that many tokens!");
             
             // luckyNumber needs to be equal or higher than 0.
             require(luckyNumber >= 0, "Your lucky number needs to be equal or higher than 0.");
@@ -493,7 +509,7 @@ contract BiffyPlutonium {
                 require(prizesBalances["tokenLotteryPrize"] > 0, "There is no prize for Token Lottery now.");
                 
                 // Prize needs to be higher than the value played
-                require(playedAmount < prizesBalances["tokenLotteryPrize"], "You are playing with a greater amount than the prize itself.");
+                require(playedAmount <= prizesBalances["tokenLotteryPrize"], "You are playing with a greater amount than the prize itself.");
                             
                 // luckyNumber needs to be equal or lower than tokenLotteryChances.
                 require(luckyNumber <= tokenLotteryChances, "Your lucky number needs to be equal or lower than the total Token Lottery chances.");
@@ -504,15 +520,16 @@ contract BiffyPlutonium {
                 if (luckyNumber == randomNumber) {
                     // Fetch the reward amount based on how much was played
                     rewardAmount = safeDiv(prizesBalances["tokenLotteryPrize"], safeDiv(tokenLotteryFeeThreshold, playedAmount));
+                    uint256 _rewardAmount = rewardAmount * 10 ** uint256(decimals);
                     
                     // Deducts the prize
                     prizesBalances["tokenLotteryPrize"] = safeSub(prizesBalances["tokenLotteryPrize"], rewardAmount);
                     
                     // Being safe
-                    require(balanceOf[owner] >= rewardAmount);
+                    require(balanceOf[owner] >= _rewardAmount);
 
                     // Transfers the prize to the winner.
-                    _transfer(owner, msg.sender, rewardAmount);
+                    _transfer(owner, msg.sender, _rewardAmount);
                     
                     win = true;
                     
@@ -521,7 +538,7 @@ contract BiffyPlutonium {
                     win = false;
                     
                     // Charges the played amount
-                    _transfer(msg.sender, owner, playedAmount);
+                    _transfer(msg.sender, owner, _playedAmount);
                 }
              
             } else { //If it's an HTMLCoin Lottery
@@ -561,7 +578,7 @@ contract BiffyPlutonium {
                     win = false;
                     
                     // Charges the played amount
-                    _transfer(msg.sender, owner, playedAmount);
+                    _transfer(msg.sender, owner, _playedAmount);
                 }  
             }
     }// end playLottery
