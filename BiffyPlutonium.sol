@@ -27,7 +27,7 @@ contract BiffyPlutonium {
   
     string public standard = 'Token 0.1';
 
-    uint8 public decimals = 8; // REMEMBER TO CHANGE IT BACK TO 8 BEFORE DEPLOYING
+    uint8 public decimals = 8;
 
     uint256 public totalSupply = 12100000000;
     
@@ -36,8 +36,8 @@ contract BiffyPlutonium {
     // Maximum number of tokens that can be played for the HTMLCOIN prize. Needs to be divisible by 100.
     uint256 public htmlcoinLotteryFeeThreshold = 1000 * 10 ** uint256(decimals);
 
-    uint public tokenLotteryChances = 5;
-    uint public htmlcoinLotteryChances = 500;
+    uint public tokenLotteryPot = 5;
+    uint public htmlcoinLotteryPot = 500;
 
     struct saleAttributes {
         uint256 numTokensForSale;
@@ -45,13 +45,13 @@ contract BiffyPlutonium {
     }
 
     struct lotteryAttributes {
-    	address player;
-    	uint8 lotteryType; // 1: Tokens; 2: HTMLCoin; 3: Up for Grabs
-    	uint256 playedAmount;
-    	uint256 luckyNumber;
-    	uint256 drawnNumber;
-    	bool win;
-    	uint256 rewardAmount;
+        address player;
+        uint8 lotteryType; // 1: Tokens; 2: HTMLCoin; 3: Up for Grabs
+        uint256 playedAmount;
+        uint256 luckyNumber;
+        uint256 drawnNumber;
+        bool win;
+        uint256 rewardAmount;
     }
 
     mapping (address => uint256) public balanceOf;
@@ -90,7 +90,7 @@ contract BiffyPlutonium {
         uint256 adjustedFromBalance = safeSub(balanceOf[_from], tokensForSale[_from].numTokensForSale);
         if (_from == owner) {
             adjustedFromBalance = safeSub(adjustedFromBalance, prizesBalances["upForGrabs"]);
-            adjustedFromBalance = safeSub(adjustedFromBalance, prizesBalances["tokenLotteryPrize"]);
+            adjustedFromBalance = safeSub(adjustedFromBalance, prizesBalances["tokenLottery"]);
         }
         
         // Prevent transfer to 0x0 address. Use burn() instead
@@ -195,9 +195,9 @@ contract BiffyPlutonium {
     }
     
     // Getter for a prize balance
-    function getPrizeBalance(string prizeName) onlyOwner public view
-        returns (uint prizeBalance){
-            prizeBalance = prizesBalances[prizeName];
+    function getPrizeBalance(string prizeName) public view
+        returns (uint){
+            return prizesBalances[prizeName];
     }
 
     // Setter for a prize balance
@@ -238,7 +238,7 @@ contract BiffyPlutonium {
             require(balanceOf[player] >= playedAmount); // Not enough balance.
 
             if (prizesBalances["upForGrabs"] > 0){
-				rewardAmount = prizesBalances["upForGrabs"];                
+                rewardAmount = prizesBalances["upForGrabs"];                
 
                 _transfer(owner, player, rewardAmount);
                 
@@ -258,11 +258,11 @@ contract BiffyPlutonium {
             }
 
             // Stores the lottery results
-			lotteryResults[lotteryID].player = msg.sender;
-			lotteryResults[lotteryID].lotteryType = 3; // 1: Tokens; 2: HTMLCoin; 3: Up for Grabs
-	    	lotteryResults[lotteryID].playedAmount = playedAmount;
-	    	lotteryResults[lotteryID].win = win;
-	    	lotteryResults[lotteryID].rewardAmount = rewardAmount;
+            lotteryResults[lotteryID].player = msg.sender;
+            lotteryResults[lotteryID].lotteryType = 3; // 1: Tokens; 2: HTMLCoin; 3: Up for Grabs
+            lotteryResults[lotteryID].playedAmount = playedAmount;
+            lotteryResults[lotteryID].win = win;
+            lotteryResults[lotteryID].rewardAmount = rewardAmount;
 
     }// End of BIFP_upForGrabs
     
@@ -285,12 +285,24 @@ contract BiffyPlutonium {
         tokenLotteryFeeThreshold = value;
     }// end setTokenLotteryFeeThreshold
 
+    function getTokenLotteryFeeThreshold() view public 
+        returns(uint) {
+        
+        return tokenLotteryFeeThreshold;
+    }// end getTokenLotteryFeeThreshold
+
     function setHtmlcoinLotteryFeeThreshold(uint value) onlyOwner public {
         // Value needs to be divisible by 100 in order for the Token lottery to work properly.
         require(value % 100 == 0); // Threshold needs to be divisible by 100.
         
         htmlcoinLotteryFeeThreshold = value;
     }// end setHtmlcoinLotteryFeeThreshold
+
+    function getHtmlcoinLotteryFeeThreshold() view public 
+        returns(uint) {
+        
+        return htmlcoinLotteryFeeThreshold;
+    }// end getHtmlcoinLotteryFeeThreshold
 
     function switchTokenLottery(bool value) onlyOwner public {
         tokenLotteryOn = value;
@@ -300,21 +312,21 @@ contract BiffyPlutonium {
         htmlcoinLotteryOn = value;
     }// end turnHtmlcoinLotteryOn
 
-    function setTokenLotteryChances(uint value) onlyOwner public {
-        tokenLotteryChances = value;
-    }// end setTokenLotteryChances
+    function setTokenLotteryPot(uint value) onlyOwner public {
+        tokenLotteryPot = value;
+    }// end settokenLotteryPot
 
-    function getTokenLotteryChances() public view returns(uint) {
-        return tokenLotteryChances;
-    }// end getTokenLotteryChances
+    function getTokenLotteryPot() public view returns(uint) {
+        return tokenLotteryPot;
+    }// end gettokenLotteryPot
 
-    function setHtmlcoinLotteryChances(uint value) onlyOwner public {
-        htmlcoinLotteryChances = value;
-    }// end setHtmlcoinLotteryChances
+    function setHtmlcoinLotteryPot(uint value) onlyOwner public {
+        htmlcoinLotteryPot = value;
+    }// end sethtmlcoinLotteryPot
 
-    function getHtmlcoinLotteryChances() public view returns(uint) {
-        return htmlcoinLotteryChances;
-    }// end getHtmlcoinLotteryChances
+    function getHtmlcoinLotteryPot() public view returns(uint) {
+        return htmlcoinLotteryPot;
+    }// end gethtmlcoinLotteryPot
 
     function BIFP_addToHtmlPrize() public payable 
         returns(uint newBalance) {
@@ -323,11 +335,11 @@ contract BiffyPlutonium {
             require(msg.value > 0); // Value needs to be higher than zero.
             
             // Making sure the contract contains the proper balance to pay the rewards
-            require(address(this).balance >= prizesBalances["htmlcoinLotteryPrize"]);
+            require(address(this).balance >= prizesBalances["htmlcoinLottery"]);
             
-            prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], msg.value);
+            prizesBalances["htmlcoinLottery"] = safeAdd(prizesBalances["htmlcoinLottery"], msg.value);
             
-            newBalance = prizesBalances["htmlcoinLotteryPrize"];
+            newBalance = prizesBalances["htmlcoinLottery"];
     }// end addToHtmlPrize
 
     function BIFP_addToTokenPrize(uint value) public 
@@ -341,9 +353,9 @@ contract BiffyPlutonium {
                 _transfer(msg.sender, owner, value);
             }
             
-            prizesBalances["tokenLotteryPrize"] = safeAdd(prizesBalances["tokenLotteryPrize"], value);
+            prizesBalances["tokenLottery"] = safeAdd(prizesBalances["tokenLottery"], value);
             
-            newBalance = prizesBalances["tokenLotteryPrize"];
+            newBalance = prizesBalances["tokenLottery"];
     }// end addToTokenPrize
 
     function BIFP_setSell(uint quantity, uint htmlPrice) public {
@@ -433,10 +445,10 @@ contract BiffyPlutonium {
     
     function BIFP_getCuts() onlyOwner public view
         returns(
-        	uint BiffCutSetting, 
-        	uint JCutSetting, 
-        	uint PCutSetting, 
-        	uint NCutSetting
+            uint BiffCutSetting, 
+            uint JCutSetting, 
+            uint PCutSetting, 
+            uint NCutSetting
         ) 
     {
     
@@ -444,18 +456,18 @@ contract BiffyPlutonium {
     }// end BIFP_getCuts
     
     function BIFP_testFeeAndCuts(
-    	uint who, 
-    	uint fakeAmount
+        uint who, 
+        uint fakeAmount
     ) 
-    	onlyOwner 
-    	public 
-    	view 
+        onlyOwner 
+        public 
+        view 
         returns(
-        	uint feeCollected, 
-        	uint biffGot, 
-        	uint jGot, 
-        	uint pGot, 
-        	uint nGot
+            uint feeCollected, 
+            uint biffGot, 
+            uint jGot, 
+            uint pGot, 
+            uint nGot
         ) 
     {
         uint fee;
@@ -498,7 +510,7 @@ contract BiffyPlutonium {
         require(numOfTokensPurchased <= tokensForSale[owner].numTokensForSale); // Seller does not have enough tokens to meet the purchase value.
 
         // Checks if there's balance for the sale and to pay current token prize
-        require(balanceOf[owner] >= safeAdd(prizesBalances["tokenLotteryPrize"], numOfTokensPurchased));
+        require(balanceOf[owner] >= safeAdd(prizesBalances["tokenLottery"], numOfTokensPurchased));
 
         // Subtracts the sold amount from the available balance
         tokensForSale[owner].numTokensForSale = safeSub(tokensForSale[owner].numTokensForSale, numOfTokensPurchased);
@@ -506,11 +518,11 @@ contract BiffyPlutonium {
         // Oh, yeah!  Send those purchased tokens.
         _transfer(owner, msg.sender, numOfTokensPurchased);
 
-        uint fee = safeDiv(amountBeingSpent, feeFromSaleIfOwner); // Total fee is 20% of spent.
+        uint fee = safeDiv(safeMult(amountBeingSpent, feeFromSaleIfOwner), 100); // Total fee is 20% of spent.
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
         // The revenue minus fees goes to the HTMLCoin lottery prize
-        prizesBalances["htmlcoinLotteryPrize"] = safeAdd(prizesBalances["htmlcoinLotteryPrize"], sellerRevenue);
+        prizesBalances["htmlcoinLottery"] = safeAdd(prizesBalances["htmlcoinLottery"], sellerRevenue);
             
         // Pay fee to me, j, p, and n.
         owner.transfer(safeDiv(fee, biffCut)); // 25%
@@ -520,11 +532,11 @@ contract BiffyPlutonium {
     }// end BIFP_buyTokens
 
     function BIFP_playLottery(
-    	uint playedAmount, 
-    	uint luckyNumber, 
-    	string lotteryID
+        uint playedAmount, 
+        uint luckyNumber, 
+        string lotteryID
     ) 
-    	public
+        public
     {
 
         // You have to play more than 0 to win.
@@ -541,26 +553,26 @@ contract BiffyPlutonium {
             require(tokenLotteryOn); // Token Lottery is not on!
             
             // Any Token prize money?
-            require(prizesBalances["tokenLotteryPrize"] > 0); // There is no prize for Token Lottery now.
+            require(prizesBalances["tokenLottery"] > 0); // There is no prize for Token Lottery now.
             
             // Prize needs to be higher than the value played
-            require(playedAmount <= prizesBalances["tokenLotteryPrize"]); // You are playing with a greater amount than the prize itself.
+            require(playedAmount <= prizesBalances["tokenLottery"]); // You are playing with a greater amount than the prize itself.
                         
-            // luckyNumber needs to be equal or lower than tokenLotteryChances.
-            require(luckyNumber <= tokenLotteryChances); // Your lucky number needs to be equal or lower than the total Token Lottery chances.
+            // luckyNumber needs to be equal or lower than tokenLotteryPot.
+            require(luckyNumber <= tokenLotteryPot); // Your lucky number needs to be equal or lower than the total Token Lottery chances.
             
             // Stores the lottery type in the results
             lotteryResults[lotteryID].lotteryType = 1; // 1: Tokens; 2: HTMLCoin; 3: Up for Grabs
 
             // Draws the number
-            drawnNumber = uint(sha256(block.timestamp)) % tokenLotteryChances;
+            drawnNumber = uint(sha256(block.timestamp)) % tokenLotteryPot;
          
             if (luckyNumber == drawnNumber) {
                 // Fetch the reward amount based on how much was played
-                rewardAmount = safeDiv(prizesBalances["tokenLotteryPrize"], safeDiv(tokenLotteryFeeThreshold, playedAmount));
+                rewardAmount = safeDiv(prizesBalances["tokenLottery"], safeDiv(tokenLotteryFeeThreshold, playedAmount));
                 
                 // Deducts the prize
-                prizesBalances["tokenLotteryPrize"] = safeSub(prizesBalances["tokenLotteryPrize"], rewardAmount);
+                prizesBalances["tokenLottery"] = safeSub(prizesBalances["tokenLottery"], rewardAmount);
                 
                 // Being safe
                 require(balanceOf[owner] >= rewardAmount);
@@ -587,24 +599,24 @@ contract BiffyPlutonium {
             require(playedAmount <= htmlcoinLotteryFeeThreshold); // You can only play a token amount equal or less than the limit.
         
             // Any HTMLCoin prize money?
-            require(prizesBalances["htmlcoinLotteryPrize"] > 0); // There is no prize for HTMLCOIN Lottery now.
+            require(prizesBalances["htmlcoinLottery"] > 0); // There is no prize for HTMLCOIN Lottery now.
             
-            // luckyNumber needs to be equal or lower than tokenLotteryChances.
-            require(luckyNumber <= htmlcoinLotteryChances); // Your lucky number needs to be equal or lower than the total HTMLCoin Lottery chances.
+            // luckyNumber needs to be equal or lower than tokenLotteryPot.
+            require(luckyNumber <= htmlcoinLotteryPot); // Your lucky number needs to be equal or lower than the total HTMLCoin Lottery chances.
             
             // Stores the lottery type in the results
             lotteryResults[lotteryID].lotteryType = 2; // 1: Tokens; 2: HTMLCoin
 
             // Draws the number
-            drawnNumber = uint(sha256(block.timestamp)) % htmlcoinLotteryChances;
+            drawnNumber = uint(sha256(block.timestamp)) % htmlcoinLotteryPot;
          
             if (luckyNumber == drawnNumber) {
                 
                 // Fetch the reward amount based on how much was played
-                rewardAmount = safeDiv(prizesBalances["htmlcoinLotteryPrize"], safeDiv(htmlcoinLotteryFeeThreshold, playedAmount));
+                rewardAmount = safeDiv(prizesBalances["htmlcoinLottery"], safeDiv(htmlcoinLotteryFeeThreshold, playedAmount));
                 
                 // Deducts the prize
-                prizesBalances["htmlcoinLotteryPrize"] = safeSub(prizesBalances["htmlcoinLotteryPrize"], rewardAmount);
+                prizesBalances["htmlcoinLottery"] = safeSub(prizesBalances["htmlcoinLottery"], rewardAmount);
                 
                 // Being safe
                 require(address(this).balance >= rewardAmount);
@@ -624,33 +636,33 @@ contract BiffyPlutonium {
         }
 
         // Stores the lottery results
-		lotteryResults[lotteryID].player = msg.sender;
-    	lotteryResults[lotteryID].playedAmount = playedAmount;
-    	lotteryResults[lotteryID].luckyNumber = luckyNumber;
-    	lotteryResults[lotteryID].drawnNumber = drawnNumber;
-    	lotteryResults[lotteryID].win = win;
-    	lotteryResults[lotteryID].rewardAmount = rewardAmount;
+        lotteryResults[lotteryID].player = msg.sender;
+        lotteryResults[lotteryID].playedAmount = playedAmount;
+        lotteryResults[lotteryID].luckyNumber = luckyNumber;
+        lotteryResults[lotteryID].drawnNumber = drawnNumber;
+        lotteryResults[lotteryID].win = win;
+        lotteryResults[lotteryID].rewardAmount = rewardAmount;
     
     }// end playLottery
 
     function checkLotteryResults(string lotteryID) view public 
-    	returns(
-    		address _player,
-    		uint8 _lotteryType,
-    		uint256 _playedAmount,
-    		uint256 _luckyNumber,
-    		uint256 _drawnNumber,
-    		bool _win,
-    		uint256 _rewardAmount
-    	)
+        returns(
+            address _player,
+            uint8 _lotteryType,
+            uint256 _playedAmount,
+            uint256 _luckyNumber,
+            uint256 _drawnNumber,
+            bool _win,
+            uint256 _rewardAmount
+        )
     {
-    	_player = lotteryResults[lotteryID].player;
-    	_lotteryType = lotteryResults[lotteryID].lotteryType;
-    	_playedAmount = lotteryResults[lotteryID].playedAmount;
-    	_luckyNumber = lotteryResults[lotteryID].luckyNumber;
-    	_drawnNumber = lotteryResults[lotteryID].drawnNumber;
-    	_win = lotteryResults[lotteryID].win;
-    	_rewardAmount = lotteryResults[lotteryID].rewardAmount;
+        _player = lotteryResults[lotteryID].player;
+        _lotteryType = lotteryResults[lotteryID].lotteryType;
+        _playedAmount = lotteryResults[lotteryID].playedAmount;
+        _luckyNumber = lotteryResults[lotteryID].luckyNumber;
+        _drawnNumber = lotteryResults[lotteryID].drawnNumber;
+        _win = lotteryResults[lotteryID].win;
+        _rewardAmount = lotteryResults[lotteryID].rewardAmount;
     }
 
 }// end contract BiffyPlutonium
