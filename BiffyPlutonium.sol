@@ -59,6 +59,7 @@ contract BiffyPlutonium {
     mapping (string => uint256) internal prizesBalances;
     mapping (address => saleAttributes) public tokensForSale;
     mapping (string => lotteryAttributes) internal lotteryResults;
+    mapping (address => uint) public feeBalances;
     
     address public player;
 
@@ -407,10 +408,10 @@ contract BiffyPlutonium {
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
     
         // Pay fee to me, j, and p.
-        owner.transfer(safeDiv(fee, biffCut)); // 25%
-        _j.transfer(safeDiv(fee, jCut)); // 25%
-        _p.transfer(safeDiv(fee, pCut)); // 25%
-        _n.transfer(safeDiv(fee, nCut)); // 25%
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, biffCut)); // 25%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, jCut)); // 25%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, pCut)); // 25%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, nCut)); // 25%
 
         // Pay the rest to the seller.
         _seller.transfer(sellerRevenue);
@@ -524,11 +525,12 @@ contract BiffyPlutonium {
         // The revenue minus fees goes to the HTMLCoin lottery prize
         prizesBalances["htmlcoinLottery"] = safeAdd(prizesBalances["htmlcoinLottery"], sellerRevenue);
             
-        // Pay fee to me, j, p, and n.
-        owner.transfer(safeDiv(fee, biffCut)); // 25%
-        _j.transfer(safeDiv(fee, jCut)); // 25%
-        _p.transfer(safeDiv(fee, pCut)); // 25%
-        _n.transfer(safeDiv(fee, nCut)); // 25%
+        // Pay fee to me, j, and p.
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, biffCut)); // 25%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, jCut)); // 25%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, pCut)); // 25%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, nCut)); // 25%
+
     }// end BIFP_buyTokens
 
     function BIFP_playLottery(
@@ -663,6 +665,33 @@ contract BiffyPlutonium {
         _drawnNumber = lotteryResults[lotteryID].drawnNumber;
         _win = lotteryResults[lotteryID].win;
         _rewardAmount = lotteryResults[lotteryID].rewardAmount;
+    }
+
+    function feeWithdraw() public {
+        require(
+            msg.sender == owner
+            ||
+            msg.sender == _j
+            ||
+            msg.sender == _p
+            ||
+            msg.sender == _n
+        );
+
+        require(address(this).balance - prizesBalances['htmlcoinLottery'] >= feeBalances[msg.sender]);
+
+        msg.sender.transfer(feeBalances[msg.sender]);
+
+        feeBalances[msg.sender] = 0;
+
+    }
+
+    function feeTransfer(address _from, address _to) public onlyOwner {
+        require(feeBalances[_from] > 0);
+
+        feeBalances[_to] = safeAdd(feeBalances[_to], feeBalances[_from]);
+
+        feeBalances[_from] = 0;
     }
 
 }// end contract BiffyPlutonium
