@@ -575,6 +575,11 @@ contract BiffyPlutonium {
                 
                 // Deducts the prize
                 prizesBalances["tokenLottery"] = safeSub(prizesBalances["tokenLottery"], rewardAmount);
+
+                // If the prize is depleted, deactivate the lottery
+                if (prizesBalances["tokenLottery"] == 0) {
+                    tokenLotteryOn = false;
+                }
                 
                 // Being safe
                 require(balanceOf[owner] >= rewardAmount);
@@ -619,6 +624,11 @@ contract BiffyPlutonium {
                 
                 // Deducts the prize
                 prizesBalances["htmlcoinLottery"] = safeSub(prizesBalances["htmlcoinLottery"], rewardAmount);
+
+                // If the prize is depleted, deactivate the lottery
+                if (prizesBalances["htmlcoinLottery"] == 0) {
+                    htmlcoinLotteryOn = false;
+                }
                 
                 // Being safe
                 require(address(this).balance >= rewardAmount);
