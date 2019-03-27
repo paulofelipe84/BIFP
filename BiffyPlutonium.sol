@@ -426,10 +426,10 @@ contract BiffyPlutonium {
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
     
         // Pay fee to me, j, and p.
-        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, safeDiv(100, biffCut))); // 50%
-        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, safeDiv(100, jCut))); // 20%
-        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, safeDiv(100, pCut))); // 20%
-        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, safeDiv(100, nCut))); // 10%
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(safeMult(fee, biffCut), 100)); // 50%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(safeMult(fee, jCut), 100)); // 20%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(safeMult(fee, pCut), 100)); // 20%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(safeMult(fee, nCut), 100)); // 10%
 
         // Pay the rest to the seller.
         _seller.transfer(sellerRevenue);
@@ -497,11 +497,11 @@ contract BiffyPlutonium {
             fee = feeFromSaleIfSeller;
         }
         
-        feeCollected = safeDiv(fakeAmount, safeDiv(100, fee));
-        biffGot = safeDiv(feeCollected, safeDiv(100, biffCut));
-        jGot = safeDiv(feeCollected, safeDiv(100, jCut));
-        pGot = safeDiv(feeCollected, safeDiv(100, pCut));
-        nGot = safeDiv(feeCollected, safeDiv(100, nCut));
+        feeCollected = safeDiv(safeMult(fakeAmount, fee), 100);
+        biffGot = safeDiv(safeMult(feeCollected, biffCut), 100);
+        jGot = safeDiv(safeMult(feeCollected, jCut), 100);
+        pGot = safeDiv(safeMult(feeCollected, pCut), 100);
+        nGot = safeDiv(safeMult(feeCollected, nCut), 100);
         uint totalGot = biffGot + jGot + pGot + nGot;
         
         require((totalGot) == feeCollected); // Your percentages do not work because of how solidity handles values without floating point.
@@ -544,10 +544,10 @@ contract BiffyPlutonium {
         prizesBalances["htmlcoinLottery"] = safeAdd(prizesBalances["htmlcoinLottery"], sellerRevenue);
             
         // Pay fee to me, j, and p.
-        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, safeDiv(100, biffCut))); // 50%
-        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, safeDiv(100, jCut))); // 20%
-        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, safeDiv(100, pCut))); // 20%
-        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, safeDiv(100, nCut))); // 10%
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(safeMult(fee, biffCut), 100)); // 50%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(safeMult(fee, jCut), 100)); // 20%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(safeMult(fee, pCut), 100)); // 20%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(safeMult(fee, nCut), 100)); // 10%
 
     }// end BIFP_buyTokens
 
