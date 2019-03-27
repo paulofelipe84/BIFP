@@ -515,8 +515,8 @@ contract BiffyPlutonium {
         // Contract must have a sale price set > 0 AND must still have a remaining balance.
         require(tokensForSale[owner].numTokensForSale > 0 && tokensForSale[owner].pricePerToken > 0); // No tokens are being sold by the contract.
 
-        // Keep track of htmlcoin being spent. msg.value is in HTML rather than 'satoshi' precision.
-        uint amountBeingSpent = msg.value; //* 10 ** uint256(decimals);
+        // Keep track of htmlcoin being spent.
+        uint amountBeingSpent = msg.value;
 
         // Full cost of all tokens for sale by seller.
         uint totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
