@@ -223,13 +223,31 @@ contract BiffyPlutonium {
         _j = new_j;
     }// end change_j
 
+    function get_j() onlyOwner view public 
+        returns(address)
+    {
+        return _j;
+    }
+
     function change_p(address new_p) onlyOwner public {
         _p = new_p;
     }// end change_p
 
+    function get_p() onlyOwner view public 
+        returns(address)
+    {
+        return _p;
+    }
+
     function change_n(address new_n) onlyOwner public {
         _n = new_n;
     }// end change_n
+
+    function get_n() onlyOwner view public 
+        returns(address)
+    {
+        return _n;
+    }
 
     function BIFP_upForGrabs(uint playedAmount, string lotteryID) public {
 
@@ -408,10 +426,10 @@ contract BiffyPlutonium {
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
     
         // Pay fee to me, j, and p.
-        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, biffCut)); // 25%
-        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, jCut)); // 25%
-        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, pCut)); // 25%
-        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, nCut)); // 25%
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, safeDiv(100, biffCut))); // 50%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, safeDiv(100, jCut))); // 20%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, safeDiv(100, pCut))); // 20%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, safeDiv(100, nCut))); // 10%
 
         // Pay the rest to the seller.
         _seller.transfer(sellerRevenue);
@@ -479,11 +497,11 @@ contract BiffyPlutonium {
             fee = feeFromSaleIfSeller;
         }
         
-        feeCollected = safeDiv(safeMult(fakeAmount, fee), 100);
-        biffGot = safeDiv(safeMult(feeCollected, biffCut), 100);
-        jGot = safeDiv(safeMult(feeCollected, jCut), 100);
-        pGot = safeDiv(safeMult(feeCollected, pCut), 100);
-        nGot = safeDiv(safeMult(feeCollected, nCut), 100);
+        feeCollected = safeDiv(fakeAmount, safeDiv(100, fee));
+        biffGot = safeDiv(feeCollected, safeDiv(100, biffCut));
+        jGot = safeDiv(feeCollected, safeDiv(100, jCut));
+        pGot = safeDiv(feeCollected, safeDiv(100, pCut));
+        nGot = safeDiv(feeCollected, safeDiv(100, nCut));
         uint totalGot = biffGot + jGot + pGot + nGot;
         
         require((totalGot) == feeCollected); // Your percentages do not work because of how solidity handles values without floating point.
@@ -497,8 +515,8 @@ contract BiffyPlutonium {
         // Contract must have a sale price set > 0 AND must still have a remaining balance.
         require(tokensForSale[owner].numTokensForSale > 0 && tokensForSale[owner].pricePerToken > 0); // No tokens are being sold by the contract.
 
-        // Keep track of htmlcoin being spent.
-        uint amountBeingSpent = msg.value;
+        // Keep track of htmlcoin being spent. msg.value is in HTML rather than 'satoshi' precision.
+        uint amountBeingSpent = msg.value; //* 10 ** uint256(decimals);
 
         // Full cost of all tokens for sale by seller.
         uint totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
@@ -507,7 +525,7 @@ contract BiffyPlutonium {
         require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens); // Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.
 
         // Figure out sale.  
-        uint numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken);
+        uint numOfTokensPurchased = safeMult(safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken), 100000000);
         require(numOfTokensPurchased <= tokensForSale[owner].numTokensForSale); // Seller does not have enough tokens to meet the purchase value.
 
         // Checks if there's balance for the sale and to pay current token prize
@@ -519,17 +537,17 @@ contract BiffyPlutonium {
         // Oh, yeah!  Send those purchased tokens.
         _transfer(owner, msg.sender, numOfTokensPurchased);
 
-        uint fee = safeDiv(safeMult(amountBeingSpent, feeFromSaleIfOwner), 100); // Total fee is 20% of spent.
+        uint fee = safeDiv(amountBeingSpent, 5); // Total fee is 20% of spent.
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
 
         // The revenue minus fees goes to the HTMLCoin lottery prize
         prizesBalances["htmlcoinLottery"] = safeAdd(prizesBalances["htmlcoinLottery"], sellerRevenue);
             
         // Pay fee to me, j, and p.
-        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, biffCut)); // 25%
-        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, jCut)); // 25%
-        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, pCut)); // 25%
-        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, nCut)); // 25%
+        feeBalances[owner] = safeAdd(feeBalances[owner], safeDiv(fee, safeDiv(100, biffCut))); // 50%
+        feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(fee, safeDiv(100, jCut))); // 20%
+        feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(fee, safeDiv(100, pCut))); // 20%
+        feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(fee, safeDiv(100, nCut))); // 10%
 
     }// end BIFP_buyTokens
 
