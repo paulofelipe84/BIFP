@@ -376,12 +376,29 @@ contract BiffyPlutonium {
             
             newBalance = prizesBalances["tokenLottery"];
     }// end addToTokenPrize
+    
+    function toPrecision(uint256 x) public view returns (uint256 y) {
+        y = x * 10 ** uint256(decimals);
+        return y;
+    }// end toPrecision
+
+    function fromPrecision(uint256 x) public view returns (uint256 y) {
+        y = x / 10 ** uint256(decimals);
+        return y;
+    }// end fromPrecision
 
     function BIFP_setSell(uint quantity, uint htmlPrice) public {
     // Users, including the owner, can sell their own BIFP for whatever price they want.
+
+        // Change these to proper precision values for the wallet.
+        quantity = toPrecision(quantity);
+        htmlPrice = toPrecision(htmlPrice);
+
+        // quantity and htmlPrice must be whole values.  So, no 1.5, even from the user's side of things.
+        require (quantity % toPrecision(1) == 0 && htmlPrice % toPrecision(1) == 0);
         
-        require(balanceOf[msg.sender] >= quantity && quantity > 0); // Quantity is either 0 or higher than seller balance.
-        require(htmlPrice >= 1); // The HTML price has to be at least 1.
+        require(balanceOf[msg.sender] >= quantity && quantity >= toPrecision(1)); // Quantity is either 0 or higher than seller balance.
+        require(htmlPrice >= toPrecision(1)); // The HTML price has to be at least 1.
 
         // Even the owner must set this to prevent someone from buying all tokens from the contract.
         tokensForSale[msg.sender].numTokensForSale = quantity;
@@ -512,20 +529,22 @@ contract BiffyPlutonium {
     function BIFP_buyTokens() payable public {
         require(msg.sender != owner); // Contract owner cannot buy tokens from contract.
 
-        // Contract must have a sale price set > 0 AND must still have a remaining balance.
-        require(tokensForSale[owner].numTokensForSale > 0 && tokensForSale[owner].pricePerToken > 0); // No tokens are being sold by the contract.
+        // Owner must be selling at least 1 token for at least 1 htmlcoin per token.
+        require(tokensForSale[owner].numTokensForSale >= toPrecision(1) && tokensForSale[owner].pricePerToken >= toPrecision(1)); 
 
         // Keep track of htmlcoin being spent.
         uint amountBeingSpent = msg.value;
 
         // Full cost of all tokens for sale by seller.
-        uint totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
+        uint256 totalCostForAllTokens = safeMult(tokensForSale[owner].pricePerToken, tokensForSale[owner].numTokensForSale);
+        totalCostForAllTokens = fromPrecision(totalCostForAllTokens);
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
-        require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens); // Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.
+        // Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.
+        require(amountBeingSpent >= toPrecision(1) && amountBeingSpent <= totalCostForAllTokens); 
 
         // Figure out sale.  
-        uint numOfTokensPurchased = safeMult(safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken), 100000000);
+        uint numOfTokensPurchased = toPrecision(safeDiv(amountBeingSpent, tokensForSale[owner].pricePerToken));
         require(numOfTokensPurchased <= tokensForSale[owner].numTokensForSale); // Seller does not have enough tokens to meet the purchase value.
 
         // Checks if there's balance for the sale and to pay current token prize
@@ -548,7 +567,6 @@ contract BiffyPlutonium {
         feeBalances[_j] = safeAdd(feeBalances[_j], safeDiv(safeMult(fee, jCut), 100)); // 20%
         feeBalances[_p] = safeAdd(feeBalances[_p], safeDiv(safeMult(fee, pCut), 100)); // 20%
         feeBalances[_n] = safeAdd(feeBalances[_n], safeDiv(safeMult(fee, nCut), 100)); // 10%
-
     }// end BIFP_buyTokens
 
     function BIFP_playLottery(
