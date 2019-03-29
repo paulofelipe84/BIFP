@@ -6,9 +6,9 @@ pragma solidity ^0.4.21;
 contract BiffyPlutonium {
     address public owner;
     address public potentialOwner;
-    address internal _j;
-    address internal _p;
-    address internal _n;
+    address public _j;
+    address public _p;
+    address public _n;
     
     uint internal biffCut = 50;
     uint internal jCut = 20;
@@ -223,31 +223,13 @@ contract BiffyPlutonium {
         _j = new_j;
     }// end change_j
 
-    function get_j() onlyOwner view public 
-        returns(address)
-    {
-        return _j;
-    }
-
     function change_p(address new_p) onlyOwner public {
         _p = new_p;
     }// end change_p
 
-    function get_p() onlyOwner view public 
-        returns(address)
-    {
-        return _p;
-    }
-
     function change_n(address new_n) onlyOwner public {
         _n = new_n;
     }// end change_n
-
-    function get_n() onlyOwner view public 
-        returns(address)
-    {
-        return _n;
-    }
 
     function BIFP_upForGrabs(uint playedAmount, string lotteryID) public {
 
@@ -413,7 +395,7 @@ contract BiffyPlutonium {
         require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens); // Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.
 
         // Figure out sale.  
-        numOfTokensPurchased = safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken);
+        numOfTokensPurchased = safeMult(safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken), 100000000);
         require(numOfTokensPurchased <= tokensForSale[_seller].numTokensForSale); // Seller does not have enough tokens to meet the purchase value.
 
         // Subtracts the sold amount from the available balance
