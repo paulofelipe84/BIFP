@@ -29,7 +29,7 @@ contract BiffyPlutonium {
 
     uint8 public decimals = 8;
 
-    uint256 public totalSupply = 12100000000;
+    uint256 public totalSupply = 1210000000;
     
     // Maximum number of tokens that can be played for the BIFP-only prize. Needs to be divisible by 100.
     uint256 public tokenLotteryFeeThreshold = 100 * 10 ** uint256(decimals);
@@ -389,7 +389,6 @@ contract BiffyPlutonium {
 
         // Full cost of all tokens for sale by seller.
         uint totalCostForAllTokens = safeMult(tokensForSale[_seller].pricePerToken, tokensForSale[_seller].numTokensForSale);
-        totalCostForAllTokens = totalCostForAllTokens;
 
         // The buyer must want to buy less than or equal the number of tokens for sale.
         require(amountBeingSpent > 0 && amountBeingSpent <= totalCostForAllTokens); // Spent amount needs to be > 0 AND <= the cost of all Tokens for sale.
@@ -398,11 +397,14 @@ contract BiffyPlutonium {
         numOfTokensPurchased = safeMult(safeDiv(amountBeingSpent, tokensForSale[_seller].pricePerToken), 100000000);
         require(numOfTokensPurchased <= tokensForSale[_seller].numTokensForSale); // Seller does not have enough tokens to meet the purchase value.
 
+        // Checks if the seller still has the balance
+        require(balanceOf[_seller] >= numOfTokensPurchased);
+
         // Subtracts the sold amount from the available balance
         tokensForSale[_seller].numTokensForSale = safeSub(tokensForSale[_seller].numTokensForSale, numOfTokensPurchased);
         
         // Oh, yeah!  Send those purchased tokens.
-        _transfer(owner, msg.sender, numOfTokensPurchased);
+        _transfer(_seller, msg.sender, numOfTokensPurchased);
 
         uint fee = safeMult(safeDiv(amountBeingSpent, 100), feeFromSaleIfSeller);
         uint sellerRevenue = safeSub(amountBeingSpent, fee); // amountBeingSpent minus the fee.
